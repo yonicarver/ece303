@@ -1,0 +1,20 @@
+Legend: 
+  * - An event occurred.
+  > - A write operation occurred.
+  < - A read operation occurred.
+ 
+1      Recording on 30-Sep-2018 at 17:18:41.711. Binary data in little endian format.
+2      < 2 ascii values.
+3      < 3 ascii values.
+4      < 3 ascii values.
+5      < 3 ascii values.
+6      < 3 ascii values.
+7      < 3 ascii values.
+8      < 3 ascii values.
+9      < 3 ascii values.
+10     < 3 ascii values.
+11     < 512 uchar values.
+12     < 512 uchar values.
+13     < 512 uchar values.
+14       Recording off.
+
