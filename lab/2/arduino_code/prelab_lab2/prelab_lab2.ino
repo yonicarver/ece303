@@ -8,8 +8,8 @@ PURPOSE:
 
 */
 
-#define INPUT_PIN 5;
-#define OUTPUT_PIN 13;
+#define INPUT_PIN 5		// analog pin 5
+#define OUTPUT_PIN 13	// digital pin 13
 
 int frequency = 980;
 int duty_cycle;
