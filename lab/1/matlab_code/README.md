@@ -1,22 +1,22 @@
 ## Matlab Code
 
-#appendix_a.m
+#### appendix_a.m
 Resistor estimation lab (GPIB)
 
-#appendix_b.m
+#### appendix_b.m
 Resistor estimation lab (USB)
 
-#appendix_c.m
+#### appendix_c.m
 Resistor estimation lab (GPIB)
 
-#appendix_d.m
+#### appendix_d.m
 Resistor estimation lab (USB)
 
-#appendix_e.m
+#### appendix_e.m
 Automation with AWG (GPIB)
 
-#appendix_f.m
+#### appendix_f.m
 Automation with AWG (USB)
 
-#appendix_g.m
+#### appendix_g.m
 Function
