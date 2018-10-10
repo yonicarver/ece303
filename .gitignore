@@ -1,12 +1,7 @@
-*.pdf
-*.xls
-*.fig
 *.asv
-*.xlsx
 *.scp
 lab/1/archive/
 sketch_oct01a/
 *.swp
-lab/2/from USB/
 add_deliverables.bash
-~$ekly_lab_memos.docx
+~\$*.docx
