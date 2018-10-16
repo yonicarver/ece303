@@ -5,19 +5,21 @@ close all;clear all;clc
 volts_per_division=2;
 time_range='3E-3';
 
-voltage_reading = zeros(1, 10000);
-current_reading = zeros(1, 10000);
+voltage_reading = zeros(1, 7200);
+current_reading = zeros(1, 7200);
 
 % Create equipment connections and objects
 DMM=visa('agilent','USB0::0x2A8D::0xB318::MY58170025::0::INSTR');
 scope=visa('agilent','USB0::0x0957::0x1799::MY58100813::0::INSTR');
 
-scope.InputBufferSize=2^17;
-scope.OutputBufferSize=2^17;
+
 
 % Open instruments
 fopen(DMM);
 fopen(scope);
+
+scope.InputBufferSize=2^17;
+scope.OutputBufferSize=2^17;
 
 range_str=[':CHANNEL1:RANGE ' num2str(8*volts_per_division) '\n'];
 fprintf(scope,range_str);
@@ -30,61 +32,42 @@ fprintf(scope,'WAV:POINTS:MODE RAW');
 fprintf(scope,'WAV:POIN 2000');
 fprintf(scope,':WAVEFORM:BYTEORDER LSBFirst');
 
-tv=query(scope,':CHANNEL1:RANGE?;');
-offset=query(scope,':CHANNEL1:OFFSET?');
-
 i = 1;
 tic
 while (i)
 	pause(i-toc)
-
-    disp(i);
-%     fprintf(scope,'DIG CHAN1;');
-% 	operationComplete = str2double(query(scope,'*OPC?'));
-% 	while ~operationComplete
-% 		operationComplete = str2double(query(scope,'*OPC?'));
-% 	end
-% 	preambleBlock = query(scope,':WAVEFORM:PREAMBLE?');
-% 	fprintf(scope,'WAV:DATA?;');
-	
-   	curr = str2double(query(DMM,'MEAS:CURR:DC?')); % Measure Current
-    current_reading(i) = curr;
-    disp(current_reading(i));
-
-    
-%     v_reading = binblockread(scope,'uint16');		% appends voltage reading
-%     v_reading = query(scope, ':MEASure:VAVerage?');
-    voltage_reading(i) = str2double(query(scope, ':MEAS:VAV? CHAN1'));
-%     voltage_reading(i) = v_reading;
-% 	fread(scope,1);
-    disp(voltage_reading(i));
-    
-
-    if (voltage_reading(i) < 4.8)
-        disp('done');
-        break;
-    end
-    
+ 
+        fprintf(scope,'DIG CHAN1;');
+	operationComplete = str2double(query(scope,'*OPC?'));
+	while ~operationComplete
+		operationComplete = str2double(query(scope,'*OPC?'));
+	end
+	preambleBlock = query(scope,':WAVEFORM:PREAMBLE?');
+	fprintf(scope,'WAV:DATA?;');
+	voltage_reading(i) = binblockread(scope,'uint16');		% appends voltage reading
+	disp(voltage_reading(i));
+        fread(scope,1);
+	current_reading(i) = str2double(query(DMM,'MEAS:CURR:DC?')); % Measure Current
 	i = i+1;
-    
+        if (voltage_reading(i) < 4.8)
+            break;
+        end
 end
 
-% while (1)
-%     if (voltage_reading(end) == 0)
-%         voltage_reading(end) = [];
-%         current_reading(end) = [];
-%     else
-%         break;
-%     end
-% end
+while (1)
+    if (voltage_reading(end) == 0)
+        voltage_reading(end) = [];
+        current_reading(end) = [];
+    else
+        break;
+    end
+end
 
-
-%%
 % Close and delete instrument connections and objects
 fclose(DMM);
 fclose(scope);
 
-delete(DMM);
+delete(DMM)
 delete(scope);
 
 
@@ -92,9 +75,9 @@ delete(scope);
 
 %%
 
-% trendline = polyfit(V,Imeas*1000,1);
-% x = linspace(0, 10, 100);
-% y = trendline(1)*x + trendline(2);
+trendline = polyfit(V,Imeas*1000,1);
+x = linspace(0, 10, 100);
+y = trendline(1)*x + trendline(2);
 
 %figure
 %plot(V,Imeas*1000,'o','MarkerFaceColor','b')
