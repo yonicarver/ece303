@@ -5,8 +5,8 @@ close all;clear all;clc
 volts_per_division=2;
 time_range='3E-3';
 
-voltage_reading = zeros(1, 10000);
-current_reading = zeros(1, 10000);
+voltage_reading = zeros(1, 4000);
+current_reading = zeros(1, 4000);
 
 % Create equipment connections and objects
 DMM=visa('agilent','USB0::0x2A8D::0xB318::MY58170025::0::INSTR');
@@ -39,24 +39,12 @@ while (i)
 	pause(i-toc)
 
     disp(i);
-%     fprintf(scope,'DIG CHAN1;');
-% 	operationComplete = str2double(query(scope,'*OPC?'));
-% 	while ~operationComplete
-% 		operationComplete = str2double(query(scope,'*OPC?'));
-% 	end
-% 	preambleBlock = query(scope,':WAVEFORM:PREAMBLE?');
-% 	fprintf(scope,'WAV:DATA?;');
-	
+
    	curr = str2double(query(DMM,'MEAS:CURR:DC?')); % Measure Current
     current_reading(i) = curr;
     disp(current_reading(i));
 
-    
-%     v_reading = binblockread(scope,'uint16');		% appends voltage reading
-%     v_reading = query(scope, ':MEASure:VAVerage?');
     voltage_reading(i) = str2double(query(scope, ':MEAS:VAV? CHAN1'));
-%     voltage_reading(i) = v_reading;
-% 	fread(scope,1);
     disp(voltage_reading(i));
     
 
@@ -69,16 +57,6 @@ while (i)
     
 end
 
-% while (1)
-%     if (voltage_reading(end) == 0)
-%         voltage_reading(end) = [];
-%         current_reading(end) = [];
-%     else
-%         break;
-%     end
-% end
-
-
 %%
 % Close and delete instrument connections and objects
 fclose(DMM);
@@ -87,41 +65,45 @@ fclose(scope);
 delete(DMM);
 delete(scope);
 
-
-
+%%
+% Remove zero values at the end of the vectors
+while (voltage_reading(end) == 0 && current_reading(end) == 0)
+    voltage_reading(end) = [];
+    current_reading(end) = [];
+end
 
 %%
+% Calculate Time, Power, and Energy
+time = 1:length(voltage_reading);
+instantaneous_power = voltage_reading .* current_reading;
+cumulative_energy = cumsum(instantaneous_power);
 
-% trendline = polyfit(V,Imeas*1000,1);
-% x = linspace(0, 10, 100);
-% y = trendline(1)*x + trendline(2);
+%%
+% Plot graphs
+figure(1)
+plot(time, voltage_reading)
+ylabel('Battery Voltage (V)')
+xlabel('Time (s)')
+title('Battery Voltage vs. Time')
+grid on
 
-%figure
-%plot(V,Imeas*1000,'o','MarkerFaceColor','b')
-%xlabel('Voltage (V)')
-%ylabel('Current (mA)')
-%title(strcat('Estimated Resistance:', num2str(R_est), ' \Omega'))
-%grid on
-%hold on
-%plot(x, y)
-%legend('Automated Current', 'Trendline')
-%
-%%%
-%
-%awg_voltage = 1:10;
-%current_measured = [0.47117,0.94222,1.476,1.9681,2.4593,2.9514,3.4436,3.9363,4.4298,4.9235];
-%figure
-%plot(awg_voltage, current_measured, '*', 'Linewidth', 2)
-%trendline = polyfit(awg_voltage,current_measured,1);
-%x = linspace(0, 10, 100);
-%y = trendline(1)*x + trendline(2);
-%
-%R_est=(sum(awg_voltage.^2)/sum(awg_voltage.*current_measured))*1000;
-%
-%hold on
-%plot(x, y)
-%xlabel('Voltage (V)')
-%ylabel('Current (mA)')
-%title(strcat('Estimated Resistance:', num2str(R_est), ' \Omega'))
-%grid on
-%legend('Measured Current', 'Trendline')%
+figure(2)
+plot(time, current_reading)
+ylabel('Battery Current (V)')
+xlabel('Time (s)')
+title('Battery Current vs. Time')
+grid on
+
+figure(3)
+plot(time, instantaneous_power)
+ylabel('Instantaneous Power (W)')
+xlabel('Time (s)')
+title('Battery Instantaneous Power vs. Time')
+grid on
+
+figure(4)
+plot(time, cumulative_energy)
+ylabel('Cumulative Energy (J)')
+xlabel('Time (s)')
+title('Battery Cumulative Energy vs. Time')
+grid on
