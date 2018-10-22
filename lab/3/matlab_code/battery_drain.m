@@ -89,7 +89,7 @@ grid on
 
 figure(2)
 plot(time, current_reading)
-ylabel('Battery Current (V)')
+ylabel('Battery Current (I)')
 xlabel('Time (s)')
 title('Battery Current vs. Time')
 grid on
