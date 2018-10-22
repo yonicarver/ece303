@@ -13,13 +13,13 @@ PURPOSE OF THE PROGRAM:
 
 	Output a 980Hz signal with a duty cycle that is linearly dependent
 	on constant input DC voltage from an Arbitrary Waveform Generator (AWG).
-	
+
 	This output PWM signal controls the H-Bridge for a DC motor (i.e.
 	the speed of the motor).
 
 	Count the number of pulses received from the optocoupler and rotary
 	encoder attached to the DC motor.
-	
+
 	Return the counts every second (via the serial monitor).
 
 */
@@ -47,30 +47,17 @@ void setup() {
 	pinMode(INTERRUPT_PIN, INPUT_PULLUP);		// use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
 	attachInterrupt(0, count_pulses, RISING);	// trigger interrupt routine on the RISING edge of the signal
 
-	pinMode(FAN_PIN, OUTPUT);
-	digitalWrite(FAN_PIN, LOW);
+	pinMode(FAN_PIN, OUTPUT);				// digital output pin for cooling fan
+	digitalWrite(FAN_PIN, LOW);				// set cooling fan output pin to low by default
 }
 
 void loop() {
-	//if (Serial.available() > 0)
-	//{
-	//	incoming_payload = Serial.readStringUntil('\n');
-	//}
-	
-//	Serial.setTimeout(15);				// allow Serial.readString to read in data faster
-//	// if Matlab sends a 'reset' string, reset the pulse counter to 0
-//	if (Serial.readString() == 'reset')
-//	{
-//		pulse_counter = 0;
-//	}
-	
-	
 
 	current_millis = millis();
 	if (current_millis - start_millis >= 1000)
 	{
-		Serial.println(pulse_counter);
-		pulse_counter = 0;
+		Serial.println(pulse_counter);		// print pulse counter every second
+		pulse_counter = 0;					// reset the pulse counter to 0
 		start_millis = current_millis;
 	}
 
@@ -86,6 +73,7 @@ void loop() {
 	//Serial.println(duty_cycle);
 
 
+		// read in string from MATLAB
 		incoming = Serial.readStringUntil('\n');
 		if (incoming == "fan_on")
 		{
@@ -96,11 +84,11 @@ void loop() {
 		{
 			digitalWrite(FAN_PIN, LOW);
 			Serial.println("fan off");
-	
+
 		}
 
 
-	
+
 }
 
 // INTERRUPT ROUTINES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
