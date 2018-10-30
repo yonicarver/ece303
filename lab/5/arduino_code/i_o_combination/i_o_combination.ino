@@ -41,6 +41,9 @@ PURPOSE OF THE PROGRAM:
 #define RED_LED 23		// high temperature
 #define BLUE_LED 24		// low coolant level
 
+#define LEDpin 13
+
+
 int pulse_counter = 0;	// initialize pulse counter
 String incoming_payload = "";		// initialize incoming string from Matlab
 
@@ -57,6 +60,8 @@ bool fan_flag = false;
 void setup() {
 	Serial.begin(9600);
 
+	pinMode(LEDpin, OUTPUT);
+	
 	pinMode(INTERRUPT_PIN, INPUT_PULLUP);		// use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
 	attachInterrupt(0, count_pulses, RISING);	// trigger interrupt routine on the RISING edge of the signal
 
@@ -70,7 +75,8 @@ void setup() {
 	pinMode(WHITE_LED, OUTPUT);				// normal operation LED
 	pinMode(RED_LED, OUTPUT);				// high temperature LED
 	pinMode(BLUE_LED, OUTPUT);				// low coolant level LED
-	
+
+	digitalWrite(LEDpin, LOW);
 }
 
 void loop() {
@@ -106,7 +112,7 @@ void loop() {
 	//Serial.println(duty_cycle);
 
 	// read in string from MATLAB
-	//incoming = Serial.readStringUntil('\n');
+	incoming = Serial.readStringUntil('\n');
 	//if (incoming == "fan_on")
 	if (fan_flag == true)
 	{
@@ -120,6 +126,11 @@ void loop() {
 		//Serial.println("fan off");
 
 	}
+
+	if (incoming == "start")
+		digitalWrite(LEDpin, HIGH);
+	else
+		digitalWrite(LEDpin, LOW);
 
 }
 
@@ -175,22 +186,20 @@ String str_footer = "}";
 
 
 void make_string(){
-	String packet_to_matlab = str_header +
+	String packet_to_matlab =
 		str_estop_status + estop_status +
 		str_main_relay + main_relay_status +
-		str_load_cell + 
+		str_load_cell + "load_cell_placeholder" +
 		str_optical_counter + pulse_counter +
 		str_temp + temp_status +
 		str_coolant + coolant_status +
 		str_led_normal_op + led_normal_op_status +
 		str_led_high_temp + led_high_temp_status +
-		str_led_low_coolant + led_low_coolant_status +
-		str_footer
-		
+		str_led_low_coolant + led_low_coolant_status
 		;
 
 	String packet_to_yac = main_relay_status;
 
 	Serial.println(packet_to_matlab);
-	Serial.println(packet_to_yac);
+//	Serial.println(packet_to_yac);
 }
