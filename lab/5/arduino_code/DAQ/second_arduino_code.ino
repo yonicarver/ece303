@@ -1,25 +1,28 @@
 #include "DHT.h"
+//#include "SoftwareSerial.h"
 
 // Input Pins
 #define BUZZER_PIN         7
 #define DHT_PIN            2
 #define WATER_SENSOR_PIN   A0
 #define LOAD_CELL_PIN      A1
+#define RPM_PIN            A2
 
 #define DHT_TYPE           DHT11
+DHT dht(DHT_PIN, DHT_TYPE);
+//SoftwareSerial arduinoSerial(10, 11);
 
 // Output Pins
 #define COOLANT_LED_PIN    52
 #define TEMP_LED_PIN       53
 #define NORMAL_LED_PIN     51
 #define FAN_PIN            50
+#define YAC_ESTOP_PIN      49
 
 // Thresholds
 #define COOLANT_THRESH_VAL 50
 #define TEMP_THRESH_VAL    30
 #define FAN_THRESH_VAL     100
-
-DHT dht(DHT_PIN, DHT_TYPE);
 
 // Matlab String
 String str_estop_status = "estop_status: ";
@@ -36,17 +39,21 @@ String str_led_low_coolant = ", led_low_coolant: ";
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  arduinoSerial.begin(9600);
   dht.begin();
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(COOLANT_LED_PIN, OUTPUT);
   pinMode(TEMP_LED_PIN, OUTPUT);
   pinMode(NORMAL_LED_PIN, OUTPUT);
   pinMode(FAN_PIN, OUTPUT);
+  pinMode(YAC_ESTOP_PIN, OUTPUT);
 
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  int yacEstop = 0;
 
   // ANALOG VALUE FOR LOAD CELL
   float load = analogRead (LOAD_CELL_PIN);
@@ -65,6 +72,7 @@ void loop() {
     digitalWrite(COOLANT_LED_PIN, HIGH);
 
     String estop_status = "estop";
+    yacEstop = 1;
     String main_relay_status = "estop";
     String temp_status = "high";
     String coolant_status = "low";
@@ -80,6 +88,7 @@ void loop() {
     digitalWrite(COOLANT_LED_PIN, HIGH);
     
     String estop_status = "estop";
+    yacEstop = 1;
     String main_relay_status = "estop";
     String temp_status = "ok";
     String coolant_status = "low";
@@ -95,6 +104,7 @@ void loop() {
     digitalWrite(COOLANT_LED_PIN, LOW);
 
     String estop_status = "estop";
+    yacEstop = 1;
     String main_relay_status = "estop";
     String temp_status = "high";
     String coolant_status = "ok";
@@ -110,6 +120,7 @@ void loop() {
     noTone(BUZZER_PIN);
 
     String estop_status = "ok";
+    yacEstop = 0;
     String main_relay_status = "ok";
     String temp_status = "ok";
     String coolant_status = "ok";
@@ -119,6 +130,11 @@ void loop() {
     make_string()
   }
 
+//  if (arduinoSerial.available())
+//    byte mainControllerRPM = arduinoSerial.read();
+//    int rpm = mainControllerRPM * 256;
+  int rpm = analogRead(RPM_PIN);
+  
   if (rpm >= FAN_THRESH_VAL) {
     digitalWrite(FAN_PIN, HIGH);
   }
@@ -145,6 +161,10 @@ void make_string(){
 
   String packet_to_yac = main_relay_status;
 
-  Serial.write(packet_to_matlab);
-  //Serial.println(packet_to_yac);
+  if (Serial.available())
+    Serial.write(packet_to_matlab);
+
+//  if (arduinoSerial.available())
+//    arduinoSerial.write(packet_to_yac);
+  digitalWrite(YAK_ESTOP_PIN, yacEstop);
 }
