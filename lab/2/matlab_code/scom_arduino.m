@@ -1,18 +1,20 @@
 clear ; close all; clc
 
-arduino = serial('COM3', 'Baudrate', 9600);
+arduino = serial('COM6', 'Baudrate', 9600);
 fopen(arduino);
 
-while ~0
-    fwrite(arduino, '1');
+% while ~0
+for i=1:inf
+
     flushinput(arduino);
 
-    resp = str2double(fgetl(arduino));
-    disp(resp)
+    payload = fgetl(arduino);
+    disp(payload)
 end
 % response = str2double(fgetl(arduino));
 
-
+%%
 
 fclose(arduino);
 delete(arduino);
+instrreset

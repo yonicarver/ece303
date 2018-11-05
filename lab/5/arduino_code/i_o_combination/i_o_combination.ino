@@ -168,7 +168,7 @@ String main_relay_status = "estop";
 String temp_status = "ok";
 String coolant_status = "ok";
 String led_normal_op_status = "off";
-String led_high_temp_status = "off";
+String led_high_temp_status = "magenta";
 String led_low_coolant_status = "off";
 
 

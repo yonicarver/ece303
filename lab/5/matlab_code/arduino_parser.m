@@ -15,7 +15,7 @@ close all; clear all; clc
 
 
 % Arduino Serial Communication
-arduino=serial('COM3', 'Baudrate', 9600);
+arduino=serial('COM6', 'Baudrate', 9600);
 fopen(arduino);
 
 % rpm = zeros(1, 10000);
