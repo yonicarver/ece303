@@ -16,9 +16,9 @@ DHT dht(DHT_PIN, DHT_TYPE);
 #define YAC_ESTOP_PIN      49
 
 // Thresholds
-#define COOLANT_THRESH_VAL -300
+#define COOLANT_THRESH_VAL 50
 #define TEMP_THRESH_VAL    30
-#define FAN_THRESH_VAL     5
+#define FAN_THRESH_VAL     100
 
 //50
 //30
@@ -67,11 +67,12 @@ void loop() {
   make_string();
 
   // Read RPM from main controller and turn fan on or off
-  while (!Serial1.available()){}
-  byte b1 = Serial1.read();
+//  while (!Serial1.available()){}
+//  byte b1 = Serial1.read();
   while (!Serial1.available()){}
   byte b2 = Serial1.read(); 
-  rpm = b2 + b1*256;
+//  rpm = b2 + b1*256;
+  rpm = b2; //+ 256;
   if (rpm >= FAN_THRESH_VAL) {
     digitalWrite(FAN_PIN, HIGH);
   }
@@ -175,6 +176,9 @@ void make_string(){
     str_led_low_coolant + led_low_coolant_status
     ;
 
+    char packet_to_mlab[10] = "000111000";
+
 //  if (Serial.available())
     Serial.println(packet_to_matlab);
+//	Serial.println(packet_to_mlab);
 }

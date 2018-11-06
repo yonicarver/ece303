@@ -37,11 +37,13 @@ void loop() {
   input_load = analogRead(LOAD_CELL_PIN);
   duty_cycle = map(input_load, 0, 1023, 0, 255);    // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
   analogWrite(OUTPUT_PIN, duty_cycle);                // write the load cell dependent duty cycle to the analog output pin
+
+
     
   if (current_millis - start_millis >= 1000)
   {
     Serial.println(rpm);                              // print pulse counter every second
-    Serial1.write(rpm / 256);
+//    Serial1.write(rpm / 256);
     Serial1.write(rpm % 256);
     Serial1.write(input_load / 256);
     Serial1.write(input_load % 256);

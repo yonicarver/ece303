@@ -7,3 +7,4 @@ add_deliverables.bash
 ~\$*.docx
 */archive/*
 */lab_package_v*
+*/lab/6/examples*

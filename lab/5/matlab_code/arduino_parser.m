@@ -56,4 +56,5 @@ end
 %% Close and delete instrument connections and objects
 fclose(arduino);
 delete(arduino);
+%%
 instrreset
