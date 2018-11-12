@@ -78,11 +78,11 @@ void loop() {
   }
 
   // Read load cell value from main controller
-  while (!Serial1.available()){}
-  byte b3 = Serial1.read();
+//  while (!Serial1.available()){}
+//  byte b3 = Serial1.read();
   while (!Serial1.available()){}
   byte b4 = Serial1.read();
-  load = b4 + b3*256;
+  load = b4; // + b3*256;
 
   // Read temperature and water levels and set off resepective alarms
   float waterLevel = analogRead (WATER_SENSOR_PIN)-250.0;
