@@ -14,6 +14,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 #define NORMAL_LED_PIN     51
 #define FAN_PIN            50
 #define YAC_ESTOP_PIN      49
+#define START_STOP_PIN	  45
 
 // Thresholds
 #define COOLANT_THRESH_VAL 50		// 50
@@ -43,6 +44,8 @@ String led_low_coolant_status = "test_led_lowcoolant";
 int load;		// load cell value
 int rpm;		// rpm value
 
+int start_stop_flag;
+
 void setup() {
   Serial.begin(9600);				// begin serial over USB
   Serial1.begin(9600);				// begin serial1 over 18TX1 & 19RX1
@@ -55,15 +58,16 @@ void setup() {
   pinMode(FAN_PIN, 			OUTPUT);
   pinMode(YAC_ESTOP_PIN, 	OUTPUT);
 
+  pinMode(START_STOP_PIN, OUTPUT);
+
 }
 
 void loop() {
   make_string();
 
   while (!Serial1.available()){}
-  byte b2 = Serial1.read();
-//  rpm = b2 + b1*256;
-  rpm = b2; //+ 256;
+  int rpm_bytes = Serial1.read();
+  rpm = rpm_bytes;
   if (rpm >= FAN_THRESH_VAL) {
     digitalWrite(FAN_PIN, HIGH);
   }
@@ -73,16 +77,41 @@ void loop() {
 
   // Read load cell value from main controller
   while (!Serial1.available()){}
-  byte b3 = Serial1.read();
-  while (!Serial1.available()){}
-  byte b4 = Serial1.read();
-  load = b4 + b3*256;
+  int load_cell_bytes = Serial1.read();
+  load = load_cell_bytes;
 
   // Read temperature and water levels and set off resepective alarms
   float waterLevel = analogRead (WATER_SENSOR_PIN)-250.0;
   float temp = dht.readTemperature();
-//  Serial.println(temp);
-//  Serial.println(waterLevel);
+
+  if (Serial.available() > 0)
+  {
+  	String incoming_payload = Serial.readStringUntil('\n');
+  	Serial.println(incoming_payload);
+
+	if (incoming_payload == "start")
+	{
+//		digitalWrite(START_STOP_PIN, HIGH);
+		start_stop_flag = 1;
+	}
+	if (incoming_payload == "stop")
+	{
+//		digitalWrite(START_STOP_PIN, LOW);
+		start_stop_flag = 2;
+	}
+  	
+
+
+  }
+
+  if (start_stop_flag == 1)
+  	digitalWrite(START_STOP_PIN, HIGH);
+  else if (start_stop_flag == 2)
+  	digitalWrite(START_STOP_PIN, LOW);
+
+//  if (Serial.readString() == "start")
+//  	digitalWrite(TEMP_LED_PIN, HIGH);
+
 
   if (waterLevel <= COOLANT_THRESH_VAL && temp >= TEMP_THRESH_VAL) {
     tone(BUZZER_PIN, 500);
@@ -152,13 +181,12 @@ void loop() {
     led_low_coolant_status = "off";
   }
 
-  delay(1000);
+  delay(250);
 
 }
 
 // Collect and send data to MATLAB
 void make_string(){
-	
 	// Assemble string to be sent to MATLAB
 	String packet_to_matlab =
 	    str_estop_status + estop_status +
@@ -175,6 +203,7 @@ void make_string(){
 //    char packet_to_mlab[10] = "000111000";		// testing
 
 //  if (Serial.available())
+    Serial.flush();
     Serial.println(packet_to_matlab);
 //	Serial.println(packet_to_mlab);
 }
