@@ -68,7 +68,6 @@ void loop() {
   if (digitalRead(START_STOP_PIN) == HIGH)
   {
   	analogWrite(OUTPUT_PIN, duty_cycle);                // write the load cell dependent duty cycle to the analog output pin
-//  	digitalWrite(13, HIGH);
   	start_stop_flag = 1;
   }
   else

@@ -101,7 +101,6 @@ void loop() {
 	}
   	
 
-
   }
 
   if (start_stop_flag == 1)

@@ -6,8 +6,6 @@ fopen(arduino);
 
 buffer = strings(1,2);
 
-
-
 while ~0
 % for i=1:inf
     counter = 0;
