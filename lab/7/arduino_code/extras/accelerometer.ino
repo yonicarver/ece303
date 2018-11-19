@@ -1,49 +1,36 @@
-#define SENSOR_PIN 2 // SHOULD BE CHANGED
-#define LED_PIN 13
+#include<Wire.h>
+const int MPU=0x68; 
+int16_t AcX,AcY,AcZ;
 
-volatile int vibration = 0;
-int vibration_count = 0;
-
-unsigned long start_millis = 0;
-unsigned long current_millis;
-
-void setup()
-{
+void setup(){
+  Wire.begin();
+  Wire.beginTransmission(MPU);
+  Wire.write(0x6B); 
+  Wire.write(0);    
+  Wire.endTransmission(true);
   Serial.begin(9600);
-
-  pinMode(SENSOR_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), count_vibrations, RISING);
-
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
 }
+void loop(){
+  Wire.beginTransmission(MPU);
+  Wire.write(0x3B);  
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU,12,true);  
+  AcX=Wire.read()<<8|Wire.read();    
+  AcY=Wire.read()<<8|Wire.read();  
+  AcZ=Wire.read()<<8|Wire.read();   
+  
+  Serial.print("Accelerometer: ");
+  Serial.print("X = "); Serial.print(AcX);
+  Serial.print(" | Y = "); Serial.print(AcY);
+  Serial.print(" | Z = "); Serial.println(AcZ); 
 
-void loop()
-{
-  current_millis = millis();
-
-  if (current_millis - start_millis >= 1000)
-  {
-    Serial.println(vibration);                              // print pulse counter every second
-    if (vibration >= 650) {
-      vibration_count++;
-    }
-    else {
-      vibration_count = 0;
-    }
-    vibration = 0;                                         // reset the pulse counter to 0
-    start_millis = current_millis;
-  }
-
-  if (vibration_count > 4) {
-    digitalWrite(LED_PIN, HIGH);
+  if ( AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000) {
+    digitalWrite(13, LOW);
   }
   else {
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(13, HIGH);
   }
-}
-
-void count_vibrations() {
-  // increase pulse counter by one
-  vibration++;
+  delay(10);
 }
