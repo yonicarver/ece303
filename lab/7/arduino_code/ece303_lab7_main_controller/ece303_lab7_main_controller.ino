@@ -6,7 +6,7 @@
 HX711 scale(DOUT, CLK);
 
 #define INTERRUPT_PIN    3    // digital pin 3, reads in pulses from rotary encoder
-#define LOAD_CELL_PIN    5    // analog pin 5, input pin for load cell
+//#define LOAD_CELL_PIN    5    // analog pin 5, input pin for load cell
 #define OUTPUT_PIN       12   // digital pin 12, output pin for PWM signal (linearly dependent on load cell value)
 #define START_STOP_PIN   45   // digital pin 45, start/stop pin from DAQ
 #define YAC_ESTOP_PIN    49   // digital pin 49, receives signal from DAQ if an alarm goes off
@@ -17,7 +17,7 @@ int start_stop_flag;
 volatile int rpm = 0;    // initialize pulse counter
 
 int duty_cycle;
-int input_load;
+int input_load = 0;
 float calibration_factor = -6266660;
 
 int max_load = 100;      // maximum load-cell value
@@ -31,7 +31,7 @@ void setup() {
      Serial.begin(9600);
      Serial1.begin(9600);
 
-     scale.set_scale();
+     scale.set_scale(calibration_factor);
      scale.tare();             //Reset the scale to 0
 
      pinMode(INTERRUPT_PIN, INPUT_PULLUP);     // use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
@@ -58,15 +58,20 @@ void loop() {
 
      current_millis = millis();
 
-     scale.set_scale(calibration_factor);  //Calibration Factor obtained from first sketch
+//     scale.set_scale(calibration_factor);  //Calibration Factor obtained from first sketch
      input_load = scale.get_units()*1000;  //Up to 3 decimal points
      // Adjust load cell value so that it does not exceed range of 0-100g
-     if (input_load > max_load)
+     if (input_load > max_load) {
           input_load = max_load;
-     else if (input_load < 0)
+     }
+     else if (input_load < 0) {
           input_load = 0;
+     }
 
-     duty_cycle = map(input_load, 0, 1023, 0, 255);    // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
+     Serial.print("input load: ");
+     Serial.println(input_load);
+
+     duty_cycle = map(input_load, 0, max_load, 0, 255);    // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
 
      if (digitalRead(START_STOP_PIN) == HIGH) {
           // if in "start" state
@@ -80,10 +85,14 @@ void loop() {
      }
 
      // testing purposes
-     if (start_stop_flag == 1)
+     if (start_stop_flag == 1) {
      	digitalWrite(11, HIGH);
-     else if (start_stop_flag == 0)
+//          analogWrite(OUTPUT_PIN, duty_cycle);   // write the load cell dependent duty cycle to the analog output pin}
+     }
+     else if (start_stop_flag == 0) {
      	digitalWrite(11, LOW);
+//          analogWrite(OUTPUT_PIN, 0);  // no output signal to H-bridge
+     }
 
 
      if (current_millis - start_millis >= 1000) {
@@ -98,7 +107,7 @@ void loop() {
      // read in max load cell from DAQ
      int max_load_matlab_bytes = Serial1.read();
      max_load = max_load_matlab_bytes;
-     Serial.println(max_load);
+//     Serial.println(max_load);   // debugging
 
      }
 

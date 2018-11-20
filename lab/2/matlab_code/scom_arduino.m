@@ -19,7 +19,7 @@ while ~0
     max_rpm_i = 22;
     max_load_i = 1;
     
-    fwrite(arduino, '%01i,%04i,%04i*', [start_stop_i, max_rpm_i, max_load_i]);
+%     fwrite(arduino, '%01i,%04i,%04i*', [start_stop_i, max_rpm_i, max_load_i]);
 %     fprintf(arduino, '%01i,%04i,%04i*', [start_stop_i, max_rpm_i, max_load_i]);
 %     fscanf(arduino);
     payload = string(fgetl(arduino));
