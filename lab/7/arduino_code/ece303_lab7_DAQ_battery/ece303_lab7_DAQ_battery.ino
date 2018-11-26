@@ -1,4 +1,5 @@
 #include "DHT.h"
+#include<Wire.h>    // for I2C comms with accelerometer
 
 // DHT (Temp & Humidity) Input Pins
 #define DHT_PIN               A2
@@ -16,10 +17,23 @@ DHT dht(DHT_PIN, DHT_TYPE);
 #define COOLANT_LED_PIN    52
 #define TEMP_LED_PIN       53
 
+// 7 Segment Pins
+#define pinA    22
+#define pinB	 23
+#define pinC    24
+#define pinD    25
+#define pinE    26
+#define pinF    27
+#define pinG    28
+#define D1	 29
+#define D2	 30
+#define D3	 31
+#define D4	 32
+
 // Thresholds
 #define COOLANT_THRESH_VAL 50      // 50
 #define TEMP_THRESH_VAL    30      // 30
-int FAN_THRESH_VAL = 100;     // 100 - aka maximum RPM
+int FAN_THRESH_VAL = 100;          // 100 - aka maximum RPM
 
 // MATLAB string: Keys
 String str_estop_status = "estop_status: ";
@@ -48,6 +62,11 @@ float battery_voltage;
 
 int start_stop_flag;     // flag for main_controller start/stop
 
+// Accelerometer
+int accelerometer_flag;  // flag for excessive tilt from accelerometer (1 for tilted, 0 for ok)
+const int MPU=0x68; 
+int16_t AcX,AcY,AcZ;
+
 // Payload from MATLAB to DAQ to main_controller
 String readString;       // main captured string from MATLAB (to be sent to main_controller)
 
@@ -64,9 +83,16 @@ int ind3;
 // =============================================================================
 
 void setup() {
-     Serial.begin(9600);                // begin serial over USB
-     Serial1.begin(9600);                    // begin serial1 over 18TX1 & 19RX1
-     dht.begin();                            // initialize DHT library for temp/humidity sensor
+     Serial.begin(9600);      // begin serial over USB
+     Serial1.begin(9600);     // begin serial1 over 18TX1 & 19RX1
+     dht.begin();             // initialize DHT library for temp/humidity sensor
+
+     // Initiate I2C comms to accelerometer
+     Wire.begin();
+     Wire.beginTransmission(MPU);
+     Wire.write(0x6B); 
+     Wire.write(0);    
+     Wire.endTransmission(true);
 
      pinMode(BUZZER_PIN,           OUTPUT);
      pinMode(COOLANT_LED_PIN,      OUTPUT);
@@ -77,12 +103,26 @@ void setup() {
 
      pinMode(START_STOP_PIN,       OUTPUT);
 
+     // 7 Segment Outputs
+     pinMode(pinA,  OUTPUT);
+     pinMode(pinB,  OUTPUT);
+     pinMode(pinC,  OUTPUT);
+     pinMode(pinD,  OUTPUT);
+     pinMode(pinE,  OUTPUT);
+     pinMode(pinF,  OUTPUT);
+     pinMode(pinG,  OUTPUT);
+     pinMode(D1,    OUTPUT);
+     pinMode(D2, 	OUTPUT);
+     pinMode(D3, 	OUTPUT);
+     pinMode(D4, 	OUTPUT);
+
+
 }
 
 // =============================================================================
 
 void loop() {
-     make_string();
+     make_string();      // make string to send to MATLAB
 
      // read rpm value from main_controller
      while (!Serial1.available()){}
@@ -95,44 +135,47 @@ void loop() {
           digitalWrite(FAN_PIN, LOW);
      }
 
+     // ------------------------------------------------------------------------
+     
      // Read load cell value from main controller
      while (!Serial1.available()){}
      int load_cell_bytes = Serial1.read();
      load = load_cell_bytes;
 
+     // ------------------------------------------------------------------------
+
      // payload data from MATLAB
-     if (Serial.available() > 0)
-     {
-     //   format: "0,0000,1111*" -- 12 bytes, must end with "*"
-
-     char c = Serial.read();                              // read each character
-     if (c == '*') {
-          // Parse over incoming string from MATLAB
-          ind1 = readString.indexOf(',');                   // location of first ","
-          start_stop = readString.substring(0, ind1);       // first data string
-          ind2 = readString.indexOf(',', ind1+1);           // location of second ","
-          rpm_matlab = readString.substring(ind1+1, ind2);  // second data string
-          ind3 = readString.indexOf(',', ind2+1);           // location of third ","
-          max_load_matlab = readString.substring(ind2+1);   // third data string, after last ","
-
-          Serial.print("Start_stop flag: ");
-          Serial.println(start_stop);
-          //   digitalWrite(START_STOP_PIN, start_stop_flag);
-          start_stop_flag = start_stop.toInt();
-          Serial.print("RPM from rpm_matlab: ");
-          Serial.println(rpm_matlab.toInt());
-          FAN_THRESH_VAL = rpm_matlab.toInt();
-          Serial.print("Max Load from MATLAB: ");
-          Serial.println(max_load_matlab.toInt());
-          Serial.println();
-          Serial.println();
+     if (Serial.available() > 0) {
+          //   format: "0,0000,1111*" -- 12 bytes, must end with "*"
      
-          Serial1.write(max_load_matlab.toInt());     // write max_load to main_controller
-//          Serial.println(max_load_matlab.toInt());    // debugging
-
-          rpm_matlab = "";         // clear variables for new input
-          max_load_matlab = "";
-          readString = "";
+          char c = Serial.read();                              // read each character
+          if (c == '*') {
+               // Parse over incoming string from MATLAB
+               ind1 = readString.indexOf(',');                   // location of first ","
+               start_stop = readString.substring(0, ind1);       // first data string
+               ind2 = readString.indexOf(',', ind1+1);           // location of second ","
+               rpm_matlab = readString.substring(ind1+1, ind2);  // second data string
+               ind3 = readString.indexOf(',', ind2+1);           // location of third ","
+               max_load_matlab = readString.substring(ind2+1);   // third data string, after last ","
+     
+               Serial.print("Start_stop flag: ");
+               Serial.println(start_stop);
+               //   digitalWrite(START_STOP_PIN, start_stop_flag);
+               start_stop_flag = start_stop.toInt();
+               Serial.print("RPM from rpm_matlab: ");
+               Serial.println(rpm_matlab.toInt());
+               FAN_THRESH_VAL = rpm_matlab.toInt();
+               Serial.print("Max Load from MATLAB: ");
+               Serial.println(max_load_matlab.toInt());
+               Serial.println();
+               Serial.println();
+     
+               Serial1.write(max_load_matlab.toInt());     // write max_load to main_controller
+     //          Serial.println(max_load_matlab.toInt());    // debugging
+     
+               rpm_matlab = "";         // clear variables for new input
+               max_load_matlab = "";
+               readString = "";
      }
      else
           readString += c;         // makes the string readString
@@ -146,88 +189,118 @@ void loop() {
      else if (start_stop_flag == 0)
           digitalWrite(START_STOP_PIN, LOW);
 
+     // ------------------------------------------------------------------------
 
      // Read temperature and water levels and set off resepective alarms
      float waterLevel = analogRead (WATER_SENSOR_PIN)-250.0;
      float temp = dht.readTemperature();
 
+     // ------------------------------------------------------------------------
+
      // read battery voltage
-     battery_voltage = analogRead(BATTERY_VOLTAGE_PIN) * 100.0 / 1023.0;
+     battery_voltage = analogRead(BATTERY_VOLTAGE_PIN);
+     display_seven_seg(battery_voltage);     // display battery_voltage on 7 segment display
+     battery_voltage = battery_voltage * 100.0 / 1023.0;    // adjust battery voltage to be sent to MATLAB
+
+     // ------------------------------------------------------------------------
+
+     // read in accelerometer data
+     Wire.beginTransmission(MPU);
+     Wire.write(0x3B);  
+     Wire.endTransmission(false);
+     Wire.requestFrom(MPU,12,true);
+     
+     AcX=Wire.read()<<8|Wire.read();    
+     AcY=Wire.read()<<8|Wire.read();  
+     AcZ=Wire.read()<<8|Wire.read();  
+
+     if ( !(AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
+          // tilted
+          accelerometer_flag = 1;
+     }
+     else {
+          // not tilted
+          accelerometer_flag = 0;
+     }
+
+     // ------------------------------------------------------------------------
 
      if (waterLevel <= COOLANT_THRESH_VAL && temp >= TEMP_THRESH_VAL) {
-     tone(BUZZER_PIN, 500);
-     digitalWrite(NORMAL_LED_PIN, LOW);
-     digitalWrite(TEMP_LED_PIN, HIGH);
-     digitalWrite(COOLANT_LED_PIN, HIGH);
-
-     digitalWrite(YAC_ESTOP_PIN, LOW);
-
-     estop_status = "estop";
-     main_relay_status = "estop";
-     temp_status = "high";
-     coolant_status = "low";
-     led_normal_op_status = "off";
-     led_high_temp_status = "on";
-     led_low_coolant_status = "on";
+          tone(BUZZER_PIN, 500);
+          digitalWrite(NORMAL_LED_PIN, LOW);
+          digitalWrite(TEMP_LED_PIN, HIGH);
+          digitalWrite(COOLANT_LED_PIN, HIGH);
+     
+          digitalWrite(YAC_ESTOP_PIN, LOW);
+     
+          estop_status = "estop";
+          main_relay_status = "estop";
+          temp_status = "high";
+          coolant_status = "low";
+          led_normal_op_status = "off";
+          led_high_temp_status = "on";
+          led_low_coolant_status = "on";
      }
 
      else if (waterLevel <= COOLANT_THRESH_VAL) {
-     tone(BUZZER_PIN, 500);
-     digitalWrite(NORMAL_LED_PIN, LOW);
-     digitalWrite(TEMP_LED_PIN, LOW);
-     digitalWrite(COOLANT_LED_PIN, HIGH);
-
-     digitalWrite(YAC_ESTOP_PIN, LOW);
-
-     estop_status = "estop";
-     main_relay_status = "estop";
-     temp_status = "ok";
-     coolant_status = "low";
-     led_normal_op_status = "off";
-     led_high_temp_status = "off";
-     led_low_coolant_status = "on";
+          tone(BUZZER_PIN, 500);
+          digitalWrite(NORMAL_LED_PIN, LOW);
+          digitalWrite(TEMP_LED_PIN, LOW);
+          digitalWrite(COOLANT_LED_PIN, HIGH);
+     
+          digitalWrite(YAC_ESTOP_PIN, LOW);
+     
+          estop_status = "estop";
+          main_relay_status = "estop";
+          temp_status = "ok";
+          coolant_status = "low";
+          led_normal_op_status = "off";
+          led_high_temp_status = "off";
+          led_low_coolant_status = "on";
      }
 
      else if (temp >= TEMP_THRESH_VAL) {
-     tone(BUZZER_PIN, 500);
-     digitalWrite(NORMAL_LED_PIN, LOW);
-     digitalWrite(TEMP_LED_PIN, HIGH);
-     digitalWrite(COOLANT_LED_PIN, LOW);
-
-     digitalWrite(YAC_ESTOP_PIN, LOW);
-
-     estop_status = "estop";
-     main_relay_status = "estop";
-     temp_status = "high";
-     coolant_status = "ok";
-     led_normal_op_status = "off";
-     led_high_temp_status = "on";
-     led_low_coolant_status = "off";
+          tone(BUZZER_PIN, 500);
+          digitalWrite(NORMAL_LED_PIN, LOW);
+          digitalWrite(TEMP_LED_PIN, HIGH);
+          digitalWrite(COOLANT_LED_PIN, LOW);
+     
+          digitalWrite(YAC_ESTOP_PIN, LOW);
+     
+          estop_status = "estop";
+          main_relay_status = "estop";
+          temp_status = "high";
+          coolant_status = "ok";
+          led_normal_op_status = "off";
+          led_high_temp_status = "on";
+          led_low_coolant_status = "off";
      }
 
      else {
-     noTone(BUZZER_PIN);
-     digitalWrite(NORMAL_LED_PIN, HIGH);
-     digitalWrite(TEMP_LED_PIN, LOW);
-     digitalWrite(COOLANT_LED_PIN, LOW);
-
-     digitalWrite(YAC_ESTOP_PIN, HIGH);
-
-     estop_status = "ok";
-     main_relay_status = "ok";
-     temp_status = "ok";
-     coolant_status = "ok";
-     led_normal_op_status = "on";
-     led_high_temp_status = "off";
-     led_low_coolant_status = "off";
+          noTone(BUZZER_PIN);
+          digitalWrite(NORMAL_LED_PIN, HIGH);
+          digitalWrite(TEMP_LED_PIN, LOW);
+          digitalWrite(COOLANT_LED_PIN, LOW);
+     
+          digitalWrite(YAC_ESTOP_PIN, HIGH);
+     
+          estop_status = "ok";
+          main_relay_status = "ok";
+          temp_status = "ok";
+          coolant_status = "ok";
+          led_normal_op_status = "on";
+          led_high_temp_status = "off";
+          led_low_coolant_status = "off";
      }
 
      delay(250);
 
 }
 
+// =============================================================================
+
 // Collect and send data to MATLAB
-void make_string(){
+void make_string() {
      // Assemble string to be sent to MATLAB
      String packet_to_matlab =
          str_estop_status + estop_status +
@@ -248,4 +321,145 @@ void make_string(){
      Serial.flush();
      Serial.println(packet_to_matlab);
      //   Serial.println(packet_to_mlab);
+}
+
+void display_seven_seg(int battery_voltage) {
+     // battery_voltage
+
+     int seven_seg_volt_thousand = extractDigit(battery_voltage, 4);
+     int seven_seg_volt_hundred  = extractDigit(battery_voltage, 3);
+     int seven_seg_volt_ten      = extractDigit(battery_voltage, 2);
+     int seven_seg_volt_unit     = extractDigit(battery_voltage, 1);
+
+     digitalWrite(D1, LOW);
+     digitalWrite(D2, HIGH);
+     digitalWrite(D3, HIGH);
+     digitalWrite(D4, HIGH);
+     //thousand
+     displayDigit(seven_seg_volt_thousand);
+     delay(4);
+
+     digitalWrite(D1, HIGH);
+     digitalWrite(D2, LOW);
+     digitalWrite(D3, HIGH);
+     digitalWrite(D4, HIGH);
+     //hundred
+     displayDigit(seven_seg_volt_hundred);
+     delay(4);
+
+     digitalWrite(D1, HIGH);
+     digitalWrite(D2, HIGH);
+     digitalWrite(D3, LOW);
+     digitalWrite(D4, HIGH);
+     //ten
+     displayDigit(seven_seg_volt_ten);
+     delay(4);
+
+     digitalWrite(D1, HIGH);
+     digitalWrite(D2, HIGH);
+     digitalWrite(D3, HIGH);
+     digitalWrite(D4, LOW);
+     //unit
+     displayDigit(seven_seg_volt_unit);
+     delay(4);
+
+   }
+
+void displayDigit(int digit) {
+     switch (digit) {
+       case 0:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, HIGH);
+         digitalWrite(pinF, HIGH);
+         digitalWrite(pinG, LOW);
+         break;
+       case 1:
+         digitalWrite(pinA, LOW);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, LOW);
+         digitalWrite(pinE, LOW);
+         digitalWrite(pinF, LOW);
+         digitalWrite(pinG, LOW);
+         break;
+       case 2:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, LOW);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, HIGH);
+         digitalWrite(pinF, LOW);
+         digitalWrite(pinG, HIGH);
+         break;
+       case 3:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, LOW);
+         digitalWrite(pinF, LOW);
+         digitalWrite(pinG, HIGH);
+         break;
+       case 4:
+         digitalWrite(pinA, LOW);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, LOW);
+         digitalWrite(pinE, LOW);
+         digitalWrite(pinF, HIGH);
+         digitalWrite(pinG, HIGH);
+         break;
+       case 5:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, LOW);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, LOW);
+         digitalWrite(pinF, HIGH);
+         digitalWrite(pinG, HIGH);
+         break;
+       case 6:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, LOW);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, HIGH);
+         digitalWrite(pinF, HIGH);
+         digitalWrite(pinG, HIGH);
+         break;
+       case 7:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, LOW);
+         digitalWrite(pinE, LOW);
+         digitalWrite(pinF, LOW);
+         digitalWrite(pinG, LOW);
+         break;
+       case 8:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, HIGH);
+         digitalWrite(pinF, HIGH);
+         digitalWrite(pinG, HIGH);
+         break;
+       case 9:
+         digitalWrite(pinA, HIGH);
+         digitalWrite(pinB, HIGH);
+         digitalWrite(pinC, HIGH);
+         digitalWrite(pinD, HIGH);
+         digitalWrite(pinE, LOW);
+         digitalWrite(pinF, HIGH);
+         digitalWrite(pinG, HIGH);
+         break;
+     }
+}
+
+int extractDigit(int V, int P) {
+     return int(V/(pow(10,P-1))) - int(V/(pow(10,P)))*10;
 }
