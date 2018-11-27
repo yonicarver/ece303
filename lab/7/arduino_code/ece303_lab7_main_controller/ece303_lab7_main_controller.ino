@@ -1,4 +1,6 @@
 #include "HX711.h"		// https://github.com/bogde/HX711
+#include "EEPROMex.h"
+
 
 // HX711 Load Cell I/O
 #define DOUT   5
@@ -18,9 +20,16 @@ volatile int rpm = 0;    // initialize pulse counter
 
 int duty_cycle;
 int input_load = 0;
-float calibration_factor = -6266660;
+double calibration_factor = -6266660;
 
 int max_load = 100;      // maximum load-cell value
+int max_rpm;
+
+// eeprom
+const int maxAllowedWrites = 80;
+const int memBase = 350;
+int addressDouble;
+int addressInt;
 
 unsigned long start_millis = 0;
 unsigned long current_millis;
@@ -28,7 +37,7 @@ unsigned long current_millis;
 // =============================================================================
 
 void setup() {
-     Serial.begin(9600);
+     Serial.begin(115200);
      Serial1.begin(9600);
 
      scale.set_scale(calibration_factor);
@@ -41,6 +50,14 @@ void setup() {
      pinMode(START_STOP_PIN,  INPUT);        // digital input, start/stop from DAQ
      pinMode(RELAY_PIN,       OUTPUT);       // digital output, relay
      pinMode(11,              OUTPUT);       // digital output, testing
+
+
+     EEPROM.setMemPool(memBase, EEPROMSizeMega);
+     EEPROM.setMaxAllowedWrites(maxAllowedWrites);
+     
+     addressDouble = EEPROM.getAddress(sizeof(double));
+     addressInt = EEPROM.getAddress(sizeof(int));
+     readEEPROM();
 }
 
 // =============================================================================
@@ -68,8 +85,8 @@ void loop() {
           input_load = 0;
      }
 
-     Serial.print("input load: ");
-     Serial.println(input_load);
+//     Serial.print("input load: ");
+//     Serial.println(input_load);
 
      duty_cycle = map(input_load, 0, max_load, 0, 255);    // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
 
@@ -96,18 +113,46 @@ void loop() {
 
 
      if (current_millis - start_millis >= 1000) {
-     Serial.println(rpm);                    // print pulse counter every second
-     Serial.println(input_load);
-     Serial.println();
-     Serial1.write(rpm % 256);
-     Serial1.write(input_load);              //% 256);
-     rpm = 0;                                // reset the pulse counter to 0
-     start_millis = current_millis;
+          Serial.print("RPM: ");                    // print pulse counter every second
+          Serial.println(rpm);
+          Serial.print("Input load: ");
+          Serial.println(input_load);
+//          Serial.println();
+//          Serial.println();
+          Serial1.flush();
+          Serial1.write(rpm % 256);
+          Serial1.write(input_load);              //% 256);
+          rpm = 0;                                // reset the pulse counter to 0
+          start_millis = current_millis;
+     
+          // read in max load cell from DAQ
+//          while (!Serial1.available()){}
+          long max_load_matlab_bytes = Serial1.read();
+          
+//          byte max_load_matlab_bytes = Serial1.read();
+          if (max_load_matlab_bytes != -1) {
+               max_load = max_load_matlab_bytes;
+          }
+     //     Serial.println(max_load);   // debugging
+//          while (!Serial1.available()){}
+          long max_rpm_matlab_bytes = Serial1.read();
+//          byte max_rpm_matlab_bytes = Serial1.read();
+          if (max_rpm_matlab_bytes != -1) {
+               max_rpm = max_rpm_matlab_bytes;
+          }
 
-     // read in max load cell from DAQ
-     int max_load_matlab_bytes = Serial1.read();
-     max_load = max_load_matlab_bytes;
-//     Serial.println(max_load);   // debugging
+
+          Serial.print("Max Load: ");
+          Serial.println(max_load);
+          Serial.println(max_load_matlab_bytes);
+
+          
+          Serial.print("Max RPM: ");
+          Serial.println(max_rpm);
+          Serial.println(max_rpm_matlab_bytes);
+
+          Serial.println();
+          Serial.println();
 
      }
 
@@ -118,4 +163,29 @@ void loop() {
 void count_pulses() {
      // increase pulse counter by one
      rpm++;
+}
+
+
+
+void updateEEPROM() { 
+  EEPROM.updateDouble(addressDouble, calibration_factor);
+  scale.set_scale(calibration_factor);  //Calibration Factor obtained from first sketch
+  scale.tare();             //Reset the scale to 0 NEED TO TEST IF WE NEED THIS LINE WITH LOAD CELL AND GUI
+  EEPROM.updateInt(addressInt, max_rpm);   
+}
+
+void readEEPROM() { 
+  if (EEPROM.readDouble(addressDouble) > 0) {
+    calibration_factor = EEPROM.readDouble(addressDouble);
+  }
+  else {
+    calibration_factor = -6266660;
+  }
+
+  if (EEPROM.readInt(addressInt) > 0) {
+    max_rpm = EEPROM.readInt(addressInt);
+  }
+  else {
+    max_rpm = 200; // IS THIS RIGHT?
+  }
 }

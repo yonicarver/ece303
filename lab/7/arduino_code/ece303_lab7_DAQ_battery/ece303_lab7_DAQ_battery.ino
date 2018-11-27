@@ -83,7 +83,7 @@ int ind3;
 // =============================================================================
 
 void setup() {
-     Serial.begin(9600);      // begin serial over USB
+     Serial.begin(115200);      // begin serial over USB
      Serial1.begin(9600);     // begin serial1 over 18TX1 & 19RX1
      dht.begin();             // initialize DHT library for temp/humidity sensor
 
@@ -157,7 +157,9 @@ void loop() {
                rpm_matlab = readString.substring(ind1+1, ind2);  // second data string
                ind3 = readString.indexOf(',', ind2+1);           // location of third ","
                max_load_matlab = readString.substring(ind2+1);   // third data string, after last ","
-     
+
+               Serial.println();
+               Serial.println();
                Serial.print("Start_stop flag: ");
                Serial.println(start_stop);
                //   digitalWrite(START_STOP_PIN, start_stop_flag);
@@ -168,10 +170,21 @@ void loop() {
                Serial.print("Max Load from MATLAB: ");
                Serial.println(max_load_matlab.toInt());
                Serial.println();
-               Serial.println();
-     
-               Serial1.write(max_load_matlab.toInt());     // write max_load to main_controller
+               Serial.println(max_load_matlab);
+
+               long max_load_matlab1 = long(max_load_matlab.toInt());
+               long rpm_matlab1 = long(rpm_matlab.toInt());
+//               long test1 = atol(max_load_matlab);//.toInt();
+//               Serial.print("test1: "); Serial.println(test1);
+//               long test2 = atol(rpm_matlab);//.toInt();
+//               Serial.print("test2: "); Serial.println(test2);
+               Serial1.write(max_load_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_load to main_controller
+               Serial.println(max_load_matlab1);
+               Serial.println(max_load_matlab.toInt() / 512);
+               Serial.println(max_load_matlab.toInt() % 512);
      //          Serial.println(max_load_matlab.toInt());    // debugging
+               Serial1.write(rpm_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_rpm to main_controller
+               Serial.println(rpm_matlab1);
      
                rpm_matlab = "";         // clear variables for new input
                max_load_matlab = "";
