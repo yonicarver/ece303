@@ -116,7 +116,10 @@ void loop() {
      make_string();      // make string to send to MATLAB
 
      // read rpm value from main_controller
-     while (!Serial1.available()){}
+     while (!Serial1.available()){
+          display_seven_seg(rpm);
+          }
+     display_seven_seg(rpm);
      int rpm_bytes = Serial1.read();
      rpm = rpm_bytes;
      display_seven_seg(rpm);     // display rpm on 7 segment display
@@ -130,7 +133,10 @@ void loop() {
      // ------------------------------------------------------------------------
      
      // Read load cell value from main controller
-     while (!Serial1.available()){}
+     while (!Serial1.available()){
+          display_seven_seg(rpm);
+          }
+     display_seven_seg(rpm);
      int load_cell_bytes = Serial1.read();
      load = load_cell_bytes;
 
@@ -150,6 +156,14 @@ void loop() {
                ind3 = readString.indexOf(',', ind2+1);           // location of third ","
                max_load_matlab = readString.substring(ind2+1);   // third data string, after last ","
 
+
+               Serial.println(max_load_matlab);
+               long max_load_matlab_int = max_load_matlab.toInt();
+               Serial.println(max_load_matlab_int);
+               Serial.println(rpm_matlab);
+               long rpm_matlab_int = rpm_matlab.toInt();
+               Serial.println(rpm_matlab_int);
+
                Serial.println();
                Serial.println();
                Serial.print("Start_stop flag: ");
@@ -157,28 +171,31 @@ void loop() {
                //   digitalWrite(START_STOP_PIN, start_stop_flag);
                start_stop_flag = start_stop.toInt();
                Serial.print("RPM from rpm_matlab: ");
-               Serial.println(rpm_matlab.toInt());
+               Serial.println(rpm_matlab_int);
                FAN_THRESH_VAL = rpm_matlab.toInt();
                Serial.print("Max Load from MATLAB: ");
-               Serial.println(max_load_matlab.toInt());
+               Serial.println(max_load_matlab_int);
                Serial.println();
-               Serial.println(max_load_matlab);
 
-               long max_load_matlab1 = long(max_load_matlab.toInt());
-               long rpm_matlab1 = long(rpm_matlab.toInt());
+//               long max_load_matlab1 = long(max_load_matlab.toInt());
+//               long rpm_matlab1 = long(rpm_matlab.toInt());
 //               long test1 = atol(max_load_matlab);//.toInt();
 //               Serial.print("test1: "); Serial.println(test1);
 //               long test2 = atol(rpm_matlab);//.toInt();
 //               Serial.print("test2: "); Serial.println(test2);
-               Serial1.write(max_load_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_load to main_controller
-               Serial.println(max_load_matlab1);
-               Serial.println(max_load_matlab.toInt() / 512);
-               Serial.println(max_load_matlab.toInt() % 512);
+//               Serial1.write(max_load_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_load to main_controller
+               Serial.println(max_load_matlab);
+               Serial.println(max_load_matlab_int / 512);
+               Serial.write(max_load_matlab_int / 512);
+               Serial.println(max_load_matlab_int % 512);
+               Serial.write(max_load_matlab_int % 512);
      //          Serial.println(max_load_matlab.toInt());    // debugging
-               Serial1.write(rpm_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_rpm to main_controller
-               Serial.println(rpm_matlab1);
-               Serial.println(rpm_matlab.toInt() / 512);
-               Serial.println(rpm_matlab.toInt() % 512);
+//               Serial1.write(rpm_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_rpm to main_controller
+               Serial.println(rpm_matlab_int);
+               Serial.println(rpm_matlab_int / 512);
+               Serial.write(rpm_matlab_int / 512);
+               Serial.println(rpm_matlab_int % 512);
+               Serial.write(rpm_matlab_int % 512);
      
                rpm_matlab = "";         // clear variables for new input
                max_load_matlab = "";
@@ -301,6 +318,7 @@ void loop() {
           led_normal_op_status = "on";
           led_high_temp_status = "off";
           led_low_coolant_status = "off";
+          display_seven_seg(rpm);
           }
 
 
@@ -334,8 +352,10 @@ void make_string() {
      //    char packet_to_mlab[10] = "000111000";      // testing
 
      //  if (Serial.available())
+     display_seven_seg(rpm);
      Serial.flush();
      Serial.println(packet_to_matlab);
+     display_seven_seg(rpm);
      //   Serial.println(packet_to_mlab);
 }
 

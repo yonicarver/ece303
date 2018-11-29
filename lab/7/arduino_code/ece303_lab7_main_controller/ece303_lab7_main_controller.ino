@@ -79,14 +79,27 @@ void setup() {
 
 void loop() {
 
-     if (digitalRead(YAC_ESTOP_PIN) == HIGH) {
-          // if in e-stop
+     if ( (AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
+          // not tilted
+          accelerometer_flag = 1;
+     }
+     else {
+          // tilted
+          accelerometer_flag = 0;
+     }
+//     Serial.print("Accelerometer: ");
+//     Serial.print("X = "); Serial.print(AcX);
+//     Serial.print(" | Y = "); Serial.print(AcY);
+//     Serial.print(" | Z = "); Serial.println(AcZ); 
+
+     if (digitalRead(YAC_ESTOP_PIN) == HIGH && accelerometer_flag == 1) {
+          // if not in e-stop
           digitalWrite(RELAY_PIN, HIGH);      // close relay
      }
-     else if (digitalRead(YAC_ESTOP_PIN) == LOW) {
-          // if out of e-stop
+     else //if (digitalRead(YAC_ESTOP_PIN) == LOW) {
+          // if in of e-stop
           digitalWrite(RELAY_PIN, LOW);      // open relay & cut power to motor
-     }
+//     }
 
      current_millis = millis();
 
@@ -136,15 +149,6 @@ void loop() {
      AcY=Wire.read()<<8|Wire.read();  
      AcZ=Wire.read()<<8|Wire.read();  
 
-     if ( (AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
-          // not tilted
-          accelerometer_flag = 1;
-     }
-     else {
-          // tilted
-          accelerometer_flag = 0;
-     }
-
      if (current_millis - start_millis >= 1000) {
           Serial.print("RPM: ");                    // print pulse counter every second
           Serial.println(rpm);
@@ -160,29 +164,40 @@ void loop() {
      
           // read in max load cell from DAQ
 //          while (!Serial1.available()){}
-          long max_load_matlab_bytes = Serial1.read();
-          
-//          byte max_load_matlab_bytes = Serial1.read();
-          if (max_load_matlab_bytes != -1) {
-               max_load = max_load_matlab_bytes;
-          }
+          String max_load_matlab_bytes_div = Serial1.read();
+          String max_load_matlab_bytes_mod = Serial1.read();
+          Serial.print("max_load_div");
+          Serial.println(max_load_matlab_bytes_div);
+          Serial.print("max_load_mod");
+          Serial.println(max_load_matlab_bytes_mod);
+
+
+//          if (max_load_matlab_bytes != -1) {
+//               max_load = max_load_matlab_bytes;
+//          }
      //     Serial.println(max_load);   // debugging
 //          while (!Serial1.available()){}
-          long max_rpm_matlab_bytes = Serial1.read();
-//          byte max_rpm_matlab_bytes = Serial1.read();
-          if (max_rpm_matlab_bytes != -1) {
-               max_rpm = max_rpm_matlab_bytes;
-          }
+          String max_rpm_matlab_bytes_div = Serial1.read();
+          String max_rpm_matlab_bytes_mod = Serial1.read();
+
+          Serial.print("max_rpm_div");
+          Serial.println(max_rpm_matlab_bytes_div);
+          Serial.print("max_rpm_mod");
+          Serial.println(max_rpm_matlab_bytes_mod);
+
+//          if (max_rpm_matlab_bytes != -1) {
+//               max_rpm = max_rpm_matlab_bytes;
+//          }
 
 
-          Serial.print("Max Load: ");
-          Serial.println(max_load);
-          Serial.println(max_load_matlab_bytes);
-
-          
-          Serial.print("Max RPM: ");
-          Serial.println(max_rpm);
-          Serial.println(max_rpm_matlab_bytes);
+//          Serial.print("Max Load: ");
+//          Serial.println(max_load);
+//          Serial.println(max_load_matlab_bytes);
+//
+//          
+//          Serial.print("Max RPM: ");
+//          Serial.println(max_rpm);
+//          Serial.println(max_rpm_matlab_bytes);
 
           Serial.println();
           Serial.println();
