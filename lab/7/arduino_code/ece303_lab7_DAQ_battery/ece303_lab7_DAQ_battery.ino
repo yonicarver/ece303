@@ -74,6 +74,10 @@ int ind1;
 int ind2;
 int ind3;
 
+// timer acting as delay
+unsigned long current_millis;
+unsigned long start_millis = 0;
+
 // =============================================================================
 
 void setup() {
@@ -115,6 +119,7 @@ void loop() {
      while (!Serial1.available()){}
      int rpm_bytes = Serial1.read();
      rpm = rpm_bytes;
+     display_seven_seg(rpm);     // display rpm on 7 segment display
      if (rpm >= FAN_THRESH_VAL) {
           digitalWrite(FAN_PIN, HIGH);
      }
@@ -210,7 +215,6 @@ void loop() {
 
      // read battery voltage
      battery_voltage = analogRead(BATTERY_VOLTAGE_PIN);
-     display_seven_seg(battery_voltage);     // display battery_voltage on 7 segment display
      battery_voltage = battery_voltage * 100.0 / 1023.0;    // adjust battery voltage to be sent to MATLAB
 
      // ------------------------------------------------------------------------
@@ -300,7 +304,12 @@ void loop() {
           }
 
 
-     delay(250);
+//     delay(250);
+     current_millis = millis();
+     while (current_millis - start_millis <= 250) {
+          display_seven_seg(rpm);     // display rpm on 7 segment display
+     }
+     start_millis = current_millis;
 
 }
 
@@ -330,13 +339,13 @@ void make_string() {
      //   Serial.println(packet_to_mlab);
 }
 
-void display_seven_seg(int battery_voltage) {
-     // battery_voltage
+void display_seven_seg(int rpm) {
+     // rpm
 
-     int seven_seg_volt_thousand = extractDigit(battery_voltage, 4);
-     int seven_seg_volt_hundred  = extractDigit(battery_voltage, 3);
-     int seven_seg_volt_ten      = extractDigit(battery_voltage, 2);
-     int seven_seg_volt_unit     = extractDigit(battery_voltage, 1);
+     int seven_seg_volt_thousand = extractDigit(rpm, 4);
+     int seven_seg_volt_hundred  = extractDigit(rpm, 3);
+     int seven_seg_volt_ten      = extractDigit(rpm, 2);
+     int seven_seg_volt_unit     = extractDigit(rpm, 1);
 
      digitalWrite(D1, LOW);
      digitalWrite(D2, HIGH);
@@ -344,7 +353,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, HIGH);
      //thousand
      displayDigit(seven_seg_volt_thousand);
-     delay(50);
+     delay(4);
 
      digitalWrite(D1, HIGH);
      digitalWrite(D2, LOW);
@@ -352,7 +361,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, HIGH);
      //hundred
      displayDigit(seven_seg_volt_hundred);
-     delay(50);
+     delay(4);
 
      digitalWrite(D1, HIGH);
      digitalWrite(D2, HIGH);
@@ -360,7 +369,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, HIGH);
      //ten
      displayDigit(seven_seg_volt_ten);
-     delay(50);
+     delay(4);
 
      digitalWrite(D1, HIGH);
      digitalWrite(D2, HIGH);
@@ -368,7 +377,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, LOW);
      //unit
      displayDigit(seven_seg_volt_unit);
-     delay(50);
+     delay(4);
 
    }
 
