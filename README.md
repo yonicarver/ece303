@@ -8,6 +8,7 @@
 - [ ] Integrate 2 extra sensors
 - [ ] prepare presentation slides
 - [ ] Prepare final memo packet
+- [ ] Fix 7 segment update rate
 
 
 - [ ] unchecked box

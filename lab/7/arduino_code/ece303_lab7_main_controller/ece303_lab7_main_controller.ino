@@ -13,6 +13,7 @@ HX711 scale(DOUT, CLK);
 #define START_STOP_PIN   45   // digital pin 45, start/stop pin from DAQ
 #define YAC_ESTOP_PIN    49   // digital pin 49, receives signal from DAQ if an alarm goes off
 #define RELAY_PIN        50   // digital pin 50, relay to control motor for emergency shutdown
+#define STARTSTOP_MATLAB 11   // digital pin 11, turns on when MATLAB sends start, off when stop
 
 int start_stop_flag;
 
@@ -44,12 +45,12 @@ void setup() {
      scale.tare();             //Reset the scale to 0
 
      pinMode(INTERRUPT_PIN, INPUT_PULLUP);     // use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
-     attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), count_pulses, RISING); // trigger interrupt routine on the RISING edge of the signal
+     attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), count_pulses, FALLING); // trigger interrupt routine on the RISING edge of the signal
 
      pinMode(YAC_ESTOP_PIN,   INPUT);        // digital input, estop signal from DAQ
      pinMode(START_STOP_PIN,  INPUT);        // digital input, start/stop from DAQ
      pinMode(RELAY_PIN,       OUTPUT);       // digital output, relay
-     pinMode(11,              OUTPUT);       // digital output, testing
+     pinMode(STARTSTOP_MATLAB,              OUTPUT);       // digital output, testing
 
 
      EEPROM.setMemPool(memBase, EEPROMSizeMega);
@@ -103,11 +104,11 @@ void loop() {
 
      // testing purposes
      if (start_stop_flag == 1) {
-     	digitalWrite(11, HIGH);
+     	digitalWrite(STARTSTOP_MATLAB, HIGH);
 //          analogWrite(OUTPUT_PIN, duty_cycle);   // write the load cell dependent duty cycle to the analog output pin}
      }
      else if (start_stop_flag == 0) {
-     	digitalWrite(11, LOW);
+     	digitalWrite(STARTSTOP_MATLAB, LOW);
 //          analogWrite(OUTPUT_PIN, 0);  // no output signal to H-bridge
      }
 

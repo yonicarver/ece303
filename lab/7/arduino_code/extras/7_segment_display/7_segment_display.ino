@@ -29,7 +29,7 @@ E |   | C
 
 // the setup routine runs once when you press reset:
 void setup() {
-
+  Serial.begin(9600);
   // initialize the digital pins as outputs.
   pinMode(pinA, OUTPUT);
   pinMode(pinB, OUTPUT);
@@ -46,8 +46,9 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
-
+  
   int seven_seg_voltage = analogRead(A4);
+  Serial.println(seven_seg_voltage);
   int seven_seg_volt_thousand = extractDigit(seven_seg_voltage, 4);
   int seven_seg_volt_hundred  = extractDigit(seven_seg_voltage, 3);
   int seven_seg_volt_ten      = extractDigit(seven_seg_voltage, 2);
@@ -84,7 +85,7 @@ void loop() {
   //unit
   displayDigit(seven_seg_volt_unit);
   delay(4);
-
+  
 }
 
 void displayDigit(int digit) {

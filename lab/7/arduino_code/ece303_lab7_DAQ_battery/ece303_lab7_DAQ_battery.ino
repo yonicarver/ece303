@@ -144,6 +144,27 @@ void loop() {
 
      // ------------------------------------------------------------------------
 
+     // read in accelerometer data
+     Wire.beginTransmission(MPU);
+     Wire.write(0x3B);  
+     Wire.endTransmission(false);
+     Wire.requestFrom(MPU,12,true);
+     
+     AcX=Wire.read()<<8|Wire.read();    
+     AcY=Wire.read()<<8|Wire.read();  
+     AcZ=Wire.read()<<8|Wire.read();  
+
+     if ( !(AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
+          // tilted
+          accelerometer_flag = 1;
+     }
+     else {
+          // not tilted
+          accelerometer_flag = 0;
+     }
+
+     // ------------------------------------------------------------------------
+
      // payload data from MATLAB
      if (Serial.available() > 0) {
           //   format: "0,0000,1111*" -- 12 bytes, must end with "*"
@@ -185,6 +206,8 @@ void loop() {
      //          Serial.println(max_load_matlab.toInt());    // debugging
                Serial1.write(rpm_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_rpm to main_controller
                Serial.println(rpm_matlab1);
+               Serial.println(rpm_matlab.toInt() / 512);
+               Serial.println(rpm_matlab.toInt() % 512);
      
                rpm_matlab = "";         // clear variables for new input
                max_load_matlab = "";
@@ -202,6 +225,15 @@ void loop() {
      else if (start_stop_flag == 0)
           digitalWrite(START_STOP_PIN, LOW);
 
+//     if (start_stop_flag == 1 && accelerometer_flag == 0)
+//          digitalWrite(START_STOP_PIN, HIGH);
+//     else if (start_stop_flag == 0 && accelerometer_flag == 1)
+//          digitalWrite(START_STOP_PIN, LOW);
+//     else if (start_stop_flag == 0 && accelerometer_flag == 0)
+//          digitalWrite(START_STOP_PIN, LOW);
+//     else if (start_stop_flag == 1 && accelerometer_flag == 1)
+//          digitalWrite(START_STOP_PIN, LOW);
+
      // ------------------------------------------------------------------------
 
      // Read temperature and water levels and set off resepective alarms
@@ -217,28 +249,7 @@ void loop() {
 
      // ------------------------------------------------------------------------
 
-     // read in accelerometer data
-     Wire.beginTransmission(MPU);
-     Wire.write(0x3B);  
-     Wire.endTransmission(false);
-     Wire.requestFrom(MPU,12,true);
-     
-     AcX=Wire.read()<<8|Wire.read();    
-     AcY=Wire.read()<<8|Wire.read();  
-     AcZ=Wire.read()<<8|Wire.read();  
-
-     if ( !(AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
-          // tilted
-          accelerometer_flag = 1;
-     }
-     else {
-          // not tilted
-          accelerometer_flag = 0;
-     }
-
-     // ------------------------------------------------------------------------
-
-     if (waterLevel <= COOLANT_THRESH_VAL && temp >= TEMP_THRESH_VAL) {
+     if (waterLevel <= COOLANT_THRESH_VAL && temp >= TEMP_THRESH_VAL && accelerometer_flag == 1) {
           tone(BUZZER_PIN, 500);
           digitalWrite(NORMAL_LED_PIN, LOW);
           digitalWrite(TEMP_LED_PIN, HIGH);
@@ -255,7 +266,7 @@ void loop() {
           led_low_coolant_status = "on";
      }
 
-     else if (waterLevel <= COOLANT_THRESH_VAL) {
+     else if (waterLevel <= COOLANT_THRESH_VAL && accelerometer_flag == 1) {
           tone(BUZZER_PIN, 500);
           digitalWrite(NORMAL_LED_PIN, LOW);
           digitalWrite(TEMP_LED_PIN, LOW);
@@ -272,7 +283,7 @@ void loop() {
           led_low_coolant_status = "on";
      }
 
-     else if (temp >= TEMP_THRESH_VAL) {
+     else if (temp >= TEMP_THRESH_VAL && accelerometer_flag == 1) {
           tone(BUZZER_PIN, 500);
           digitalWrite(NORMAL_LED_PIN, LOW);
           digitalWrite(TEMP_LED_PIN, HIGH);
@@ -289,6 +300,22 @@ void loop() {
           led_low_coolant_status = "off";
      }
 
+     else if (accelerometer_flag == 1) {
+          noTone(BUZZER_PIN);
+          digitalWrite(NORMAL_LED_PIN, LOW);
+          digitalWrite(TEMP_LED_PIN, LOW);
+          digitalWrite(COOLANT_LED_PIN, LOW);
+     
+          digitalWrite(YAC_ESTOP_PIN, LOW);
+     
+          estop_status = "estop";
+          main_relay_status = "estop";
+          temp_status = "ok";
+          coolant_status = "ok";
+          led_normal_op_status = "off";
+          led_high_temp_status = "off";
+          led_low_coolant_status = "off";
+     }
      else {
           noTone(BUZZER_PIN);
           digitalWrite(NORMAL_LED_PIN, HIGH);
@@ -304,9 +331,10 @@ void loop() {
           led_normal_op_status = "on";
           led_high_temp_status = "off";
           led_low_coolant_status = "off";
-     }
+          }
 
-     delay(250);
+
+//     delay(250);
 
 }
 
@@ -350,7 +378,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, HIGH);
      //thousand
      displayDigit(seven_seg_volt_thousand);
-     delay(4);
+//     delay(4);
 
      digitalWrite(D1, HIGH);
      digitalWrite(D2, LOW);
@@ -358,7 +386,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, HIGH);
      //hundred
      displayDigit(seven_seg_volt_hundred);
-     delay(4);
+//     delay(4);
 
      digitalWrite(D1, HIGH);
      digitalWrite(D2, HIGH);
@@ -366,7 +394,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, HIGH);
      //ten
      displayDigit(seven_seg_volt_ten);
-     delay(4);
+//     delay(4);
 
      digitalWrite(D1, HIGH);
      digitalWrite(D2, HIGH);
@@ -374,7 +402,7 @@ void display_seven_seg(int battery_voltage) {
      digitalWrite(D4, LOW);
      //unit
      displayDigit(seven_seg_volt_unit);
-     delay(4);
+//     delay(4);
 
    }
 
