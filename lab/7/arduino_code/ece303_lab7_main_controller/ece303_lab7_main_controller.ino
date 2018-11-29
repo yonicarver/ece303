@@ -1,5 +1,6 @@
 #include "HX711.h"		// https://github.com/bogde/HX711
 #include "EEPROMex.h"
+#include<Wire.h>    // for I2C comms with accelerometer
 
 
 // HX711 Load Cell I/O
@@ -26,6 +27,11 @@ double calibration_factor = -6266660;
 int max_load = 100;      // maximum load-cell value
 int max_rpm;
 
+// Accelerometer
+int accelerometer_flag;  // flag for excessive tilt from accelerometer (1 for tilted, 0 for ok)
+const int MPU=0x68; 
+int16_t AcX,AcY,AcZ;
+
 // eeprom
 const int maxAllowedWrites = 80;
 const int memBase = 350;
@@ -38,7 +44,7 @@ unsigned long current_millis;
 // =============================================================================
 
 void setup() {
-     Serial.begin(115200);
+     Serial.begin(9600);
      Serial1.begin(9600);
 
      scale.set_scale(calibration_factor);
@@ -59,17 +65,25 @@ void setup() {
      addressDouble = EEPROM.getAddress(sizeof(double));
      addressInt = EEPROM.getAddress(sizeof(int));
      readEEPROM();
+
+     
+     // Initiate I2C comms to accelerometer
+     Wire.begin();
+     Wire.beginTransmission(MPU);
+     Wire.write(0x6B); 
+     Wire.write(0);    
+     Wire.endTransmission(true);
 }
 
 // =============================================================================
 
 void loop() {
 
-     if (digitalRead(YAC_ESTOP_PIN) == LOW) {
+     if (digitalRead(YAC_ESTOP_PIN) == HIGH) {
           // if in e-stop
           digitalWrite(RELAY_PIN, HIGH);      // close relay
      }
-     else if (digitalRead(YAC_ESTOP_PIN) == HIGH) {
+     else if (digitalRead(YAC_ESTOP_PIN) == LOW) {
           // if out of e-stop
           digitalWrite(RELAY_PIN, LOW);      // open relay & cut power to motor
      }
@@ -112,6 +126,24 @@ void loop() {
 //          analogWrite(OUTPUT_PIN, 0);  // no output signal to H-bridge
      }
 
+     // read in accelerometer data
+     Wire.beginTransmission(MPU);
+     Wire.write(0x3B);  
+     Wire.endTransmission(false);
+     Wire.requestFrom(MPU,12,true);
+     
+     AcX=Wire.read()<<8|Wire.read();    
+     AcY=Wire.read()<<8|Wire.read();  
+     AcZ=Wire.read()<<8|Wire.read();  
+
+     if ( (AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
+          // not tilted
+          accelerometer_flag = 1;
+     }
+     else {
+          // tilted
+          accelerometer_flag = 0;
+     }
 
      if (current_millis - start_millis >= 1000) {
           Serial.print("RPM: ");                    // print pulse counter every second
