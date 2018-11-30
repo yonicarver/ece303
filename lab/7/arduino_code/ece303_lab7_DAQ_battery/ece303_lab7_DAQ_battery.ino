@@ -67,9 +67,9 @@ String readString;       // main captured string from MATLAB (to be sent to main
 // Strings for data from MATLAB to DAQ to main_controller
 String start_stop;
 String rpm_matlab;
-String max_load_matlab;
+String calibration_matlab;
 
-// section indicators for start_stop, max_rpm, max_load
+// section indicators for start_stop, max_rpm, calibration
 int ind1;
 int ind2;
 int ind3;
@@ -154,12 +154,12 @@ void loop() {
                ind2 = readString.indexOf(',', ind1+1);           // location of second ","
                rpm_matlab = readString.substring(ind1+1, ind2);  // second data string
                ind3 = readString.indexOf(',', ind2+1);           // location of third ","
-               max_load_matlab = readString.substring(ind2+1);   // third data string, after last ","
+               calibration_matlab = readString.substring(ind2+1);   // third data string, after last ","
 
 
-               Serial.println(max_load_matlab);
-               long max_load_matlab_int = max_load_matlab.toInt();
-               Serial.println(max_load_matlab_int);
+               Serial.println(calibration_matlab);
+               long calibration_matlab_int = abs(calibration_matlab.toInt());
+               Serial.println(calibration_matlab_int);
                Serial.println(rpm_matlab);
                long rpm_matlab_int = rpm_matlab.toInt();
                Serial.println(rpm_matlab_int);
@@ -174,31 +174,30 @@ void loop() {
                Serial.println(rpm_matlab_int);
                FAN_THRESH_VAL = rpm_matlab.toInt();
                Serial.print("Max Load from MATLAB: ");
-               Serial.println(max_load_matlab_int);
+               Serial.println(calibration_matlab_int);
                Serial.println();
 
-//               long max_load_matlab1 = long(max_load_matlab.toInt());
+//               long calibration_matlab1 = long(calibration_matlab.toInt());
 //               long rpm_matlab1 = long(rpm_matlab.toInt());
-//               long test1 = atol(max_load_matlab);//.toInt();
+//               long test1 = atol(calibration_matlab);//.toInt();
 //               Serial.print("test1: "); Serial.println(test1);
 //               long test2 = atol(rpm_matlab);//.toInt();
 //               Serial.print("test2: "); Serial.println(test2);
-//               Serial1.write(max_load_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_load to main_controller
-               Serial.println(max_load_matlab);
-               Serial.println(max_load_matlab_int / 512);
-               Serial.write(max_load_matlab_int / 512);
-               Serial.println(max_load_matlab_int % 512);
-               Serial.write(max_load_matlab_int % 512);
-     //          Serial.println(max_load_matlab.toInt());    // debugging
+//               Serial1.write(calibration_matlab1);//.toInt());//.toInt());// % 256.0);     // write calibration to main_controller
+               Serial.println(calibration_matlab);
+               Serial.println(calibration_matlab_int / 256 / 256);
+               Serial1.write((int)((calibration_matlab_int / 256) / 256));
+               Serial.println((calibration_matlab_int / 256) % 256);
+               Serial1.write((int)((calibration_matlab_int / 256) % 256));
+               Serial.println(calibration_matlab_int % 256);
+               Serial1.write((int)(calibration_matlab_int % 256));
+     //          Serial.println(calibration_matlab.toInt());    // debugging
 //               Serial1.write(rpm_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_rpm to main_controller
                Serial.println(rpm_matlab_int);
-               Serial.println(rpm_matlab_int / 512);
-               Serial.write(rpm_matlab_int / 512);
-               Serial.println(rpm_matlab_int % 512);
-               Serial.write(rpm_matlab_int % 512);
+               Serial1.write((int)(rpm_matlab_int));
      
                rpm_matlab = "";         // clear variables for new input
-               max_load_matlab = "";
+               calibration_matlab = "";
                readString = "";
      }
      else
