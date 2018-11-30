@@ -163,13 +163,29 @@ void loop() {
           start_millis = current_millis;
      
           // read in max load cell from DAQ
-//          while (!Serial1.available()){}
-          String max_load_matlab_bytes_div = Serial1.read();
-          String max_load_matlab_bytes_mod = Serial1.read();
-          Serial.print("max_load_div");
-          Serial.println(max_load_matlab_bytes_div);
-          Serial.print("max_load_mod");
-          Serial.println(max_load_matlab_bytes_mod);
+          while (!Serial1.available()){}
+//           String max_load_matlab_bytes_div = Serial1.read();
+//           String max_load_matlab_bytes_mod = Serial1.read();
+          int b1 = Serial1.read();
+          while (!Serial1.available()){}
+          int b2 = Serial1.read();
+          while (!Serial1.available()){}
+          int b3 = Serial1.read();
+          while (!Serial1.available()){}
+          int b4 = Serial1.read();
+          
+          long calibration_matlab = (long)(b1)*256*256  + (long)(b2)*256 + (long)(b3); 
+          calibration_matlab *= -1;
+          long max_rpm_matlab = (long)b4;
+          
+          Serial.print("calibration_matlab: ");
+          Serial.println(calibration_matlab);
+          Serial.print("max_rpm_matlab: ");
+          Serial.println(max_rpm_matlab);
+//           Serial.print("max_load_div");
+//           Serial.println(max_load_matlab_bytes_div);
+//           Serial.print("max_load_mod");
+//           Serial.println(max_load_matlab_bytes_mod);
 
 
 //          if (max_load_matlab_bytes != -1) {
@@ -177,13 +193,13 @@ void loop() {
 //          }
      //     Serial.println(max_load);   // debugging
 //          while (!Serial1.available()){}
-          String max_rpm_matlab_bytes_div = Serial1.read();
-          String max_rpm_matlab_bytes_mod = Serial1.read();
+//           String max_rpm_matlab_bytes_div = Serial1.read();
+//           String max_rpm_matlab_bytes_mod = Serial1.read();
 
-          Serial.print("max_rpm_div");
-          Serial.println(max_rpm_matlab_bytes_div);
-          Serial.print("max_rpm_mod");
-          Serial.println(max_rpm_matlab_bytes_mod);
+//           Serial.print("max_rpm_div");
+//           Serial.println(max_rpm_matlab_bytes_div);
+//           Serial.print("max_rpm_mod");
+//           Serial.println(max_rpm_matlab_bytes_mod);
 
 //          if (max_rpm_matlab_bytes != -1) {
 //               max_rpm = max_rpm_matlab_bytes;
