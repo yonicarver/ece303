@@ -22,10 +22,12 @@ volatile int rpm = 0;    // initialize pulse counter
 
 int duty_cycle;
 int input_load = 0;
-long calibration_factor = -6266660;
+//long calibration_factor = -6266660;
+double calibration_factor;
 
 int max_load = 100;      // maximum load-cell value
-long max_rpm = 100L;     // maximum rpm value
+//long max_rpm = 100L;     // maximum rpm value
+int max_rpm;
 
 // Accelerometer
 int accelerometer_flag;  // flag for excessive tilt from accelerometer (1 for tilted, 0 for ok)
@@ -48,9 +50,6 @@ void setup() {
      Serial.begin(9600);
      Serial1.begin(9600);
 
-     scale.set_scale(calibration_factor);
-     scale.tare();             //Reset the scale to 0
-
      pinMode(INTERRUPT_PIN, INPUT_PULLUP);     // use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
      attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), count_pulses, FALLING); // trigger interrupt routine on the RISING edge of the signal
 
@@ -66,6 +65,9 @@ void setup() {
      addressDouble = EEPROM.getAddress(sizeof(double));
      addressInt = EEPROM.getAddress(sizeof(int));
      readEEPROM();
+     
+     scale.set_scale(calibration_factor);
+     scale.tare();             //Reset the scale to 0
 
      // Initiate I2C comms (for accelerometer)
      Wire.begin();
@@ -193,7 +195,7 @@ void loop() {
           long max_rpm_matlab_b = (long)(b4)*256 + (long)(b5);
 
           if (calibration_matlab_b != 65793) {
-               calibration_factor = calibration_matlab_b;
+               calibration_factor = (double)(calibration_matlab_b);
           }
 
           // uncomment to debug calibration_factor =============================
@@ -201,8 +203,10 @@ void loop() {
           // Serial.println(calibration_factor);
 
           if (max_rpm_matlab_b != -257) {
-               max_rpm = max_rpm_matlab_b;
+               max_rpm = (int)(max_rpm_matlab_b);
           }
+          
+          updateEEPROM();
 
           // uncomment to debug max_rpm ========================================
           // Serial.print("max_rpm: ");
