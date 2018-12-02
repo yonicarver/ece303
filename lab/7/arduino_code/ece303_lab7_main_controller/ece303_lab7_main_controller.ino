@@ -22,10 +22,10 @@ volatile int rpm = 0;    // initialize pulse counter
 
 int duty_cycle;
 int input_load = 0;
-double calibration_factor = -6266660;
+long calibration_factor = -6266660;
 
 int max_load = 100;      // maximum load-cell value
-int max_rpm;
+long max_rpm = 100L;
 
 // Accelerometer
 int accelerometer_flag;  // flag for excessive tilt from accelerometer (1 for tilted, 0 for ok)
@@ -78,7 +78,7 @@ void setup() {
 // =============================================================================
 
 void loop() {
-
+     //           8000           -8000           8000           -8000           19000           3000
      if ( (AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
           // not tilted
           accelerometer_flag = 1;
@@ -163,58 +163,35 @@ void loop() {
           start_millis = current_millis;
      
           // read in max load cell from DAQ
-          while (!Serial1.available()){}
-//           String max_load_matlab_bytes_div = Serial1.read();
-//           String max_load_matlab_bytes_mod = Serial1.read();
           int b1 = Serial1.read();
-          while (!Serial1.available()){}
-          int b2 = Serial1.read();
-          while (!Serial1.available()){}
-          int b3 = Serial1.read();
-          while (!Serial1.available()){}
-          int b4 = Serial1.read();
-          
-          long calibration_matlab = (long)(b1)*256*256  + (long)(b2)*256 + (long)(b3); 
-          calibration_matlab *= -1;
-          long max_rpm_matlab = (long)b4;
-          
-          Serial.print("calibration_matlab: ");
-          Serial.println(calibration_matlab);
-          Serial.print("max_rpm_matlab: ");
-          Serial.println(max_rpm_matlab);
-//           Serial.print("max_load_div");
-//           Serial.println(max_load_matlab_bytes_div);
-//           Serial.print("max_load_mod");
-//           Serial.println(max_load_matlab_bytes_mod);
-
-
-//          if (max_load_matlab_bytes != -1) {
-//               max_load = max_load_matlab_bytes;
-//          }
-     //     Serial.println(max_load);   // debugging
 //          while (!Serial1.available()){}
-//           String max_rpm_matlab_bytes_div = Serial1.read();
-//           String max_rpm_matlab_bytes_mod = Serial1.read();
+          int b2 = Serial1.read();
+//          while (!Serial1.available()){}
+          int b3 = Serial1.read();
+//          while (!Serial1.available()){}
+          int b4 = Serial1.read();
+//          while (!Serial1.available()){}
+          int b5 = Serial1.read();          
+          
+          long calibration_matlab_b = (long)(b1)*256*256  + (long)(b2)*256 + (long)(b3); 
+          calibration_matlab_b *= -1;
+          long max_rpm_matlab_b = (long)(b4)*256 + (long)(b5);
 
-//           Serial.print("max_rpm_div");
-//           Serial.println(max_rpm_matlab_bytes_div);
-//           Serial.print("max_rpm_mod");
-//           Serial.println(max_rpm_matlab_bytes_mod);
 
-//          if (max_rpm_matlab_bytes != -1) {
-//               max_rpm = max_rpm_matlab_bytes;
-//          }
+          if (calibration_matlab_b != 65793) {
+               calibration_factor = calibration_matlab_b;
+          }
 
+          Serial.print("calibration_factor: ");
+          Serial.println(calibration_factor);
 
-//          Serial.print("Max Load: ");
-//          Serial.println(max_load);
-//          Serial.println(max_load_matlab_bytes);
-//
-//          
-//          Serial.print("Max RPM: ");
-//          Serial.println(max_rpm);
-//          Serial.println(max_rpm_matlab_bytes);
+          if (max_rpm_matlab_b != -257) {
+               max_rpm = max_rpm_matlab_b;
+          }
 
+          Serial.print("max_rpm: ");
+          Serial.println(max_rpm);
+          
           Serial.println();
           Serial.println();
 

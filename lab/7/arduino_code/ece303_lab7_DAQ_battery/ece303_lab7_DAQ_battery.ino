@@ -117,7 +117,7 @@ void loop() {
 
      // read rpm value from main_controller
      while (!Serial1.available()){
-          display_seven_seg(rpm);
+          display_seven_seg(rpm);       // to get rid of delay on 7 segment display
           }
      display_seven_seg(rpm);
      int rpm_bytes = Serial1.read();
@@ -134,7 +134,7 @@ void loop() {
      
      // Read load cell value from main controller
      while (!Serial1.available()){
-          display_seven_seg(rpm);
+          display_seven_seg(rpm);       // to get rid of delay on 7 segment display
           }
      display_seven_seg(rpm);
      int load_cell_bytes = Serial1.read();
@@ -177,24 +177,29 @@ void loop() {
                Serial.println(calibration_matlab_int);
                Serial.println();
 
-//               long calibration_matlab1 = long(calibration_matlab.toInt());
-//               long rpm_matlab1 = long(rpm_matlab.toInt());
-//               long test1 = atol(calibration_matlab);//.toInt();
-//               Serial.print("test1: "); Serial.println(test1);
-//               long test2 = atol(rpm_matlab);//.toInt();
-//               Serial.print("test2: "); Serial.println(test2);
-//               Serial1.write(calibration_matlab1);//.toInt());//.toInt());// % 256.0);     // write calibration to main_controller
-               Serial.println(calibration_matlab);
-               Serial.println(calibration_matlab_int / 256 / 256);
+//               Serial.print("calibration_matlab_int / 256 / 256: ");
+//               Serial.println((int)((calibration_matlab_int / 256) / 256));
                Serial1.write((int)((calibration_matlab_int / 256) / 256));
-               Serial.println((calibration_matlab_int / 256) % 256);
+               
+//               Serial.print("(calibration_matlab_int / 256) % 256): ");
+//               Serial.println((int)((calibration_matlab_int / 256) % 256));
                Serial1.write((int)((calibration_matlab_int / 256) % 256));
-               Serial.println(calibration_matlab_int % 256);
+
+//               Serial.print("(int)(calibration_matlab_int % 256): ");
+//               Serial.println((int)(calibration_matlab_int % 256));
                Serial1.write((int)(calibration_matlab_int % 256));
-     //          Serial.println(calibration_matlab.toInt());    // debugging
-//               Serial1.write(rpm_matlab1);//.toInt());//.toInt());// % 256.0);     // write max_rpm to main_controller
-               Serial.println(rpm_matlab_int);
-               Serial1.write((int)(rpm_matlab_int));
+
+//               Serial.print("((int)(rpm_matlab_int / 256)): ");
+//               Serial.println((int)(rpm_matlab_int / 256));
+               Serial1.write((int)(rpm_matlab_int / 256));
+               
+//               Serial.print("((int)(rpm_matlab_int % 256)): ");
+//               Serial.println((int)(rpm_matlab_int % 256));
+               Serial1.write((int)(rpm_matlab_int % 256));
+               
+//               Serial.print("rpm_matlab_int: ");
+//               Serial.println((int)(rpm_matlab_int));
+//               Serial1.write((int)(rpm_matlab_int));
      
                rpm_matlab = "";         // clear variables for new input
                calibration_matlab = "";
@@ -212,15 +217,6 @@ void loop() {
      else if (start_stop_flag == 0)
           digitalWrite(START_STOP_PIN, LOW);
 
-//     if (start_stop_flag == 1 && accelerometer_flag == 0)
-//          digitalWrite(START_STOP_PIN, HIGH);
-//     else if (start_stop_flag == 0 && accelerometer_flag == 1)
-//          digitalWrite(START_STOP_PIN, LOW);
-//     else if (start_stop_flag == 0 && accelerometer_flag == 0)
-//          digitalWrite(START_STOP_PIN, LOW);
-//     else if (start_stop_flag == 1 && accelerometer_flag == 1)
-//          digitalWrite(START_STOP_PIN, LOW);
-
      // ------------------------------------------------------------------------
 
      // Read temperature and water levels and set off resepective alarms
@@ -232,6 +228,7 @@ void loop() {
      // read battery voltage
      battery_voltage = analogRead(BATTERY_VOLTAGE_PIN);
      battery_voltage = battery_voltage * 100.0 / 1023.0;    // adjust battery voltage to be sent to MATLAB
+     battery_voltage *= .1;
 
      // ------------------------------------------------------------------------
 
