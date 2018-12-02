@@ -1,6 +1,6 @@
 #include "HX711.h"		// https://github.com/bogde/HX711
-#include "EEPROMex.h"
-#include<Wire.h>    // for I2C comms with accelerometer
+#include "EEPROMex.h"    // for writing & reading to eeprom
+#include <Wire.h>        // for I2C comms with accelerometer
 
 
 // HX711 Load Cell I/O
@@ -25,11 +25,11 @@ int input_load = 0;
 long calibration_factor = -6266660;
 
 int max_load = 100;      // maximum load-cell value
-long max_rpm = 100L;
+long max_rpm = 100L;     // maximum rpm value
 
 // Accelerometer
 int accelerometer_flag;  // flag for excessive tilt from accelerometer (1 for tilted, 0 for ok)
-const int MPU=0x68; 
+const int MPU=0x68;
 int16_t AcX,AcY,AcZ;
 
 // eeprom
@@ -38,6 +38,7 @@ const int memBase = 350;
 int addressDouble;
 int addressInt;
 
+// timer
 unsigned long start_millis = 0;
 unsigned long current_millis;
 
@@ -56,28 +57,29 @@ void setup() {
      pinMode(YAC_ESTOP_PIN,   INPUT);        // digital input, estop signal from DAQ
      pinMode(START_STOP_PIN,  INPUT);        // digital input, start/stop from DAQ
      pinMode(RELAY_PIN,       OUTPUT);       // digital output, relay
-     pinMode(STARTSTOP_MATLAB,              OUTPUT);       // digital output, testing
+     pinMode(STARTSTOP_MATLAB,OUTPUT);       // digital output, testing
 
-
+     // eeprom setup
      EEPROM.setMemPool(memBase, EEPROMSizeMega);
      EEPROM.setMaxAllowedWrites(maxAllowedWrites);
-     
+
      addressDouble = EEPROM.getAddress(sizeof(double));
      addressInt = EEPROM.getAddress(sizeof(int));
      readEEPROM();
 
-     
-     // Initiate I2C comms to accelerometer
+     // Initiate I2C comms (for accelerometer)
      Wire.begin();
      Wire.beginTransmission(MPU);
-     Wire.write(0x6B); 
-     Wire.write(0);    
+     Wire.write(0x6B);
+     Wire.write(0);
      Wire.endTransmission(true);
 }
 
 // =============================================================================
 
 void loop() {
+
+     // accelerometer thresholds
      //           8000           -8000           8000           -8000           19000           3000
      if ( (AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
           // not tilted
@@ -87,19 +89,26 @@ void loop() {
           // tilted
           accelerometer_flag = 0;
      }
-//     Serial.print("Accelerometer: ");
-//     Serial.print("X = "); Serial.print(AcX);
-//     Serial.print(" | Y = "); Serial.print(AcY);
-//     Serial.print(" | Z = "); Serial.println(AcZ); 
+
+     // uncomment to debug accelerometer =======================================
+     // Serial.print("Accelerometer: ");
+     // Serial.print("X = "); Serial.print(AcX);
+     // Serial.print(" | Y = "); Serial.print(AcY);
+     // Serial.print(" | Z = "); Serial.println(AcZ);
+
+// =============================================================================
 
      if (digitalRead(YAC_ESTOP_PIN) == HIGH && accelerometer_flag == 1) {
           // if not in e-stop
+          // must apply voltage to be out of estop
           digitalWrite(RELAY_PIN, HIGH);      // close relay
      }
-     else //if (digitalRead(YAC_ESTOP_PIN) == LOW) {
-          // if in of e-stop
+     else {}
+          // if in e-stop
           digitalWrite(RELAY_PIN, LOW);      // open relay & cut power to motor
-//     }
+    }
+
+    // ========================================================================
 
      current_millis = millis();
 
@@ -113,10 +122,13 @@ void loop() {
           input_load = 0;
      }
 
-//     Serial.print("input load: ");
-//     Serial.println(input_load);
+     // uncomment to debug load cell ===========================================
+     // Serial.print("input load: ");
+     // Serial.println(input_load);
 
      duty_cycle = map(input_load, 0, max_load, 0, 255);    // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
+
+     // ========================================================================
 
      if (digitalRead(START_STOP_PIN) == HIGH) {
           // if in "start" state
@@ -129,6 +141,8 @@ void loop() {
      	start_stop_flag = 0;
      }
 
+     // ========================================================================
+
      // testing purposes
      if (start_stop_flag == 1) {
      	digitalWrite(STARTSTOP_MATLAB, HIGH);
@@ -139,15 +153,19 @@ void loop() {
 //          analogWrite(OUTPUT_PIN, 0);  // no output signal to H-bridge
      }
 
-     // read in accelerometer data
+     // ========================================================================
+
+     // read in accelerometer data from eeprom
      Wire.beginTransmission(MPU);
-     Wire.write(0x3B);  
+     Wire.write(0x3B);
      Wire.endTransmission(false);
      Wire.requestFrom(MPU,12,true);
-     
-     AcX=Wire.read()<<8|Wire.read();    
-     AcY=Wire.read()<<8|Wire.read();  
-     AcZ=Wire.read()<<8|Wire.read();  
+
+     AcX=Wire.read()<<8|Wire.read();
+     AcY=Wire.read()<<8|Wire.read();
+     AcZ=Wire.read()<<8|Wire.read();
+
+     // ========================================================================
 
      if (current_millis - start_millis >= 1000) {
           Serial.print("RPM: ");                    // print pulse counter every second
@@ -161,37 +179,35 @@ void loop() {
           Serial1.write(input_load);              //% 256);
           rpm = 0;                                // reset the pulse counter to 0
           start_millis = current_millis;
-     
-          // read in max load cell from DAQ
-          int b1 = Serial1.read();
-//          while (!Serial1.available()){}
-          int b2 = Serial1.read();
-//          while (!Serial1.available()){}
-          int b3 = Serial1.read();
-//          while (!Serial1.available()){}
-          int b4 = Serial1.read();
-//          while (!Serial1.available()){}
-          int b5 = Serial1.read();          
-          
-          long calibration_matlab_b = (long)(b1)*256*256  + (long)(b2)*256 + (long)(b3); 
-          calibration_matlab_b *= -1;
-          long max_rpm_matlab_b = (long)(b4)*256 + (long)(b5);
 
+          // read in max load cell & rpm from DAQ
+          int b1 = Serial1.read();      // (calibration_matlab_int / 256) / 256
+          int b2 = Serial1.read();      // calibration_matlab_int / 256) % 256
+          int b3 = Serial1.read();      // calibration_matlab_int % 256
+          int b4 = Serial1.read();      // rpm_matlab_int / 256
+          int b5 = Serial1.read();      // rpm_matlab_int % 256
+
+          // convert individual b's received to full number
+          long calibration_matlab_b = (long)(b1)*256*256  + (long)(b2)*256 + (long)(b3);
+          calibration_matlab_b *= -1;   // since received number will be postiive
+          long max_rpm_matlab_b = (long)(b4)*256 + (long)(b5);
 
           if (calibration_matlab_b != 65793) {
                calibration_factor = calibration_matlab_b;
           }
 
-          Serial.print("calibration_factor: ");
-          Serial.println(calibration_factor);
+          // uncomment to debug calibration_factor =============================
+          // Serial.print("calibration_factor: ");
+          // Serial.println(calibration_factor);
 
           if (max_rpm_matlab_b != -257) {
                max_rpm = max_rpm_matlab_b;
           }
 
-          Serial.print("max_rpm: ");
-          Serial.println(max_rpm);
-          
+          // uncomment to debug max_rpm ========================================
+          // Serial.print("max_rpm: ");
+          // Serial.println(max_rpm);
+
           Serial.println();
           Serial.println();
 
@@ -207,15 +223,14 @@ void count_pulses() {
 }
 
 
-
-void updateEEPROM() { 
+void updateEEPROM() {
   EEPROM.updateDouble(addressDouble, calibration_factor);
   scale.set_scale(calibration_factor);  //Calibration Factor obtained from first sketch
   scale.tare();             //Reset the scale to 0 NEED TO TEST IF WE NEED THIS LINE WITH LOAD CELL AND GUI
-  EEPROM.updateInt(addressInt, max_rpm);   
+  EEPROM.updateInt(addressInt, max_rpm);
 }
 
-void readEEPROM() { 
+void readEEPROM() {
   if (EEPROM.readDouble(addressDouble) > 0) {
     calibration_factor = EEPROM.readDouble(addressDouble);
   }

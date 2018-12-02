@@ -4,7 +4,7 @@ lab/1/archive/
 sketch_oct01a/
 *.swp
 add_deliverables.bash
-~\$*.docx
+~\$*.*
 */archive/*
 */lab_package_v*
 */lab/6/examples*
