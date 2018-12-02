@@ -1,7 +1,20 @@
+/*
+
+Yoni Carver         Farhan Muhammad
+yac25@drexel.edu    fm359@drexel.edu
+718.704.8555
+
+ECE 303 - Electrical Engineering Laboratory
+Fall 2018-19
+Drexel University
+
+12-03-2018
+
+*/
+
 #include "HX711.h"		// https://github.com/bogde/HX711
 #include "EEPROMex.h"    // for writing & reading to eeprom
 #include <Wire.h>        // for I2C comms with accelerometer
-
 
 // HX711 Load Cell I/O
 #define DOUT   5
@@ -22,14 +35,13 @@ volatile int rpm = 0;    // initialize pulse counter
 
 int duty_cycle;
 int input_load = 0;
-//long calibration_factor = -6266660;
-double calibration_factor;
 
-int max_load = 100;      // maximum load-cell value
-//long max_rpm = 100L;     // maximum rpm value
-int max_rpm;
+// from Matlab -> DAQ -> main_controller
+double calibration_factor;    // -6266660
+int max_load = 100;           // maximum load-cell value
+int max_rpm;                  // fan motor turn-on threshold
 
-// Accelerometer
+// accelerometer
 int accelerometer_flag;  // flag for excessive tilt from accelerometer (1 for tilted, 0 for ok)
 const int MPU=0x68;
 int16_t AcX,AcY,AcZ;
@@ -47,29 +59,30 @@ unsigned long current_millis;
 // =============================================================================
 
 void setup() {
-     Serial.begin(9600);
-     Serial1.begin(9600);
+     Serial.begin(9600);      // begin serial over USB
+     Serial1.begin(9600);     // begin serial1 over 18TX1 & 19RX1
 
-     pinMode(INTERRUPT_PIN, INPUT_PULLUP);     // use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
-     attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), count_pulses, FALLING); // trigger interrupt routine on the RISING edge of the signal
+     // use the internal pullup resistor on the interrupt pin (ensures no floating voltages)
+     pinMode(INTERRUPT_PIN, INPUT_PULLUP);
+     // trigger interrupt routine on the RISING edge of the signal
+     attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), count_pulses, FALLING);
 
-     pinMode(YAC_ESTOP_PIN,   INPUT);        // digital input, estop signal from DAQ
-     pinMode(START_STOP_PIN,  INPUT);        // digital input, start/stop from DAQ
-     pinMode(RELAY_PIN,       OUTPUT);       // digital output, relay
-     pinMode(STARTSTOP_MATLAB,OUTPUT);       // digital output, testing
+     pinMode(YAC_ESTOP_PIN,   INPUT);        // estop signal from DAQ
+     pinMode(START_STOP_PIN,  INPUT);        // start/stop from DAQ
+     pinMode(RELAY_PIN,       OUTPUT);       // relay control
+     pinMode(STARTSTOP_MATLAB,OUTPUT);       // start/stop LED
 
      // eeprom setup
      EEPROM.setMemPool(memBase, EEPROMSizeMega);
      EEPROM.setMaxAllowedWrites(maxAllowedWrites);
-
      addressDouble = EEPROM.getAddress(sizeof(double));
      addressInt = EEPROM.getAddress(sizeof(int));
      readEEPROM();
-     
-     scale.set_scale(calibration_factor);
-     scale.tare();             //Reset the scale to 0
 
-     // Initiate I2C comms (for accelerometer)
+     scale.set_scale(calibration_factor);
+     scale.tare();             // tare the scale to 0
+
+     // initiate I2C comms (for accelerometer)
      Wire.begin();
      Wire.beginTransmission(MPU);
      Wire.write(0x6B);
@@ -83,13 +96,11 @@ void loop() {
 
      // accelerometer thresholds
      //           8000           -8000           8000           -8000           19000           3000
-     if ( (AcX <= 8000 && AcX >= -8000 && AcY <= 8000 && AcY >= -8000 && AcZ <= 19000 && AcZ >= 3000)) {
-          // not tilted
-          accelerometer_flag = 1;
+     if ( AcX <= 9000 && AcX >= -9000 && AcY <= 9000 && AcY >= -9000 && AcZ <= 20000 && AcZ >= 4000) {
+          accelerometer_flag = 1;  // not tilted
      }
      else {
-          // tilted
-          accelerometer_flag = 0;
+          accelerometer_flag = 0;  // tilted
      }
 
      // uncomment to debug accelerometer =======================================
@@ -101,12 +112,12 @@ void loop() {
 // =============================================================================
 
      if (digitalRead(YAC_ESTOP_PIN) == HIGH && accelerometer_flag == 1) {
-          // if not in e-stop
-          // must apply voltage to be out of estop
-          digitalWrite(RELAY_PIN, HIGH);      // close relay
+          // not in e-stop
+          // (must apply voltage to be out of estop)
+          digitalWrite(RELAY_PIN, HIGH);      // close relay & power the h-bridge
      }
-     else {}
-          // if in e-stop
+     else {
+          // in e-stop
           digitalWrite(RELAY_PIN, LOW);      // open relay & cut power to motor
     }
 
@@ -114,9 +125,10 @@ void loop() {
 
      current_millis = millis();
 
-//     scale.set_scale(calibration_factor);  //Calibration Factor obtained from first sketch
-     input_load = scale.get_units()*1000;  //Up to 3 decimal points
-     // Adjust load cell value so that it does not exceed range of 0-100g
+     // scale.set_scale(calibration_factor);  // calibration factor obtained from first sketch
+     input_load = scale.get_units()*1000;    // up to 3 decimal points
+
+     // adjust load cell value so that it does not exceed range of 0-max_load (grams)
      if (input_load > max_load) {
           input_load = max_load;
      }
@@ -128,36 +140,36 @@ void loop() {
      // Serial.print("input load: ");
      // Serial.println(input_load);
 
-     duty_cycle = map(input_load, 0, max_load, 0, 255);    // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
+     // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
+     duty_cycle = map(input_load, 0, max_load, 0, 255);
 
      // ========================================================================
 
      if (digitalRead(START_STOP_PIN) == HIGH) {
-          // if in "start" state
-     	analogWrite(OUTPUT_PIN, duty_cycle);   // write the load cell dependent duty cycle to the analog output pin
+          // in "start" state
+          // write the load-cell-dependent duty cycle to the analog output pin
+     	analogWrite(OUTPUT_PIN, duty_cycle);
      	start_stop_flag = 1;
      }
      else {
-          // if in "stop" state
+          // in "stop" state
      	analogWrite(OUTPUT_PIN, 0);  // no output signal to H-bridge
      	start_stop_flag = 0;
      }
 
      // ========================================================================
+     // start/stop indicator LED
 
-     // testing purposes
      if (start_stop_flag == 1) {
      	digitalWrite(STARTSTOP_MATLAB, HIGH);
-//          analogWrite(OUTPUT_PIN, duty_cycle);   // write the load cell dependent duty cycle to the analog output pin}
      }
      else if (start_stop_flag == 0) {
      	digitalWrite(STARTSTOP_MATLAB, LOW);
-//          analogWrite(OUTPUT_PIN, 0);  // no output signal to H-bridge
      }
 
      // ========================================================================
-
      // read in accelerometer data from eeprom
+
      Wire.beginTransmission(MPU);
      Wire.write(0x3B);
      Wire.endTransmission(false);
@@ -170,16 +182,16 @@ void loop() {
      // ========================================================================
 
      if (current_millis - start_millis >= 1000) {
-          Serial.print("RPM: ");                    // print pulse counter every second
+          Serial.print("RPM: ");        // print pulse counter every second
           Serial.println(rpm);
           Serial.print("Input load: ");
           Serial.println(input_load);
-//          Serial.println();
-//          Serial.println();
+          // Serial.println();
+          // Serial.println();
           Serial1.flush();
           Serial1.write(rpm % 256);
-          Serial1.write(input_load);              //% 256);
-          rpm = 0;                                // reset the pulse counter to 0
+          Serial1.write(input_load);
+          rpm = 0;                      // reset the pulse counter to 0
           start_millis = current_millis;
 
           // read in max load cell & rpm from DAQ
@@ -199,53 +211,55 @@ void loop() {
           }
 
           // uncomment to debug calibration_factor =============================
-          // Serial.print("calibration_factor: ");
-          // Serial.println(calibration_factor);
+           Serial.print("calibration_factor: ");
+           Serial.println(calibration_factor);
 
           if (max_rpm_matlab_b != -257) {
                max_rpm = (int)(max_rpm_matlab_b);
           }
-          
+
           updateEEPROM();
 
           // uncomment to debug max_rpm ========================================
-          // Serial.print("max_rpm: ");
-          // Serial.println(max_rpm);
+          Serial.print("max_rpm: ");
+          Serial.println(max_rpm);
 
           Serial.println();
           Serial.println();
 
      }
-
 }
 
-// INTERRUPT ROUTINES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// INTERRUPT ROUTINES ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 void count_pulses() {
      // increase pulse counter by one
      rpm++;
 }
 
+// =============================================================================
 
 void updateEEPROM() {
-  EEPROM.updateDouble(addressDouble, calibration_factor);
-  scale.set_scale(calibration_factor);  //Calibration Factor obtained from first sketch
-  scale.tare();             //Reset the scale to 0 NEED TO TEST IF WE NEED THIS LINE WITH LOAD CELL AND GUI
-  EEPROM.updateInt(addressInt, max_rpm);
+     EEPROM.updateDouble(addressDouble, calibration_factor);
+     scale.set_scale(calibration_factor);  // calibration factor obtained from first sketch
+     scale.tare();             // reset the scale to 0 NEED TO TEST IF WE NEED THIS LINE WITH LOAD CELL AND GUI
+     EEPROM.updateInt(addressInt, max_rpm);
 }
 
-void readEEPROM() {
-  if (EEPROM.readDouble(addressDouble) > 0) {
-    calibration_factor = EEPROM.readDouble(addressDouble);
-  }
-  else {
-    calibration_factor = -6266660;
-  }
+// =============================================================================
 
-  if (EEPROM.readInt(addressInt) > 0) {
-    max_rpm = EEPROM.readInt(addressInt);
-  }
-  else {
-    max_rpm = 200; // IS THIS RIGHT?
-  }
+void readEEPROM() {
+     if (EEPROM.readDouble(addressDouble) < 0) {
+          calibration_factor = EEPROM.readDouble(addressDouble);
+     }
+     else {
+          calibration_factor = -6266660;
+     }
+
+     if (EEPROM.readInt(addressInt) > 0) {
+          max_rpm = EEPROM.readInt(addressInt);
+     }
+     else {
+          max_rpm = 200; // IS THIS RIGHT?
+     }
 }

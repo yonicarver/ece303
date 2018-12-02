@@ -1,3 +1,17 @@
+/*
+
+Yoni Carver         Farhan Muhammad
+yac25@drexel.edu    fm359@drexel.edu
+718.704.8555
+
+ECE 303 - Electrical Engineering Laboratory
+Fall 2018-19
+Drexel University
+
+12-03-2018
+
+*/
+
 #include "DHT.h"
 
 // DHT (Temp & Humidity) Input Pins
@@ -8,13 +22,13 @@
 DHT dht(DHT_PIN, DHT_TYPE);
 
 // Output Pins
-#define BUZZER_PIN         7       // digital out for buzzer
-#define START_STOP_PIN     45      // digital out to main_controller
-#define YAC_ESTOP_PIN      49      // digital out to main_controller
-#define FAN_PIN            50      // digital out for cooling fan
-#define NORMAL_LED_PIN     51      // digital out for normal operation LED
-#define COOLANT_LED_PIN    52      // digital out for low coolant
-#define TEMP_LED_PIN       53      // digital out for high temperature
+#define BUZZER_PIN         7       // d_out for buzzer
+#define START_STOP_PIN     45      // d_out to main_controller
+#define YAC_ESTOP_PIN      49      // d_out to main_controller
+#define FAN_PIN            50      // d_out for cooling fan
+#define NORMAL_LED_PIN     51      // d_out for normal operation LED
+#define COOLANT_LED_PIN    52      // d_out for low coolant
+#define TEMP_LED_PIN       53      // d_out for high temperature
 
 // 7 Segment Pins
 #define pinA    22
@@ -116,14 +130,15 @@ void loop() {
 
      // read rpm value from main_controller
      while (!Serial1.available()){
-          display_seven_seg(rpm);       // display rpm on 7 segment display
-          }
-     display_seven_seg(rpm);            // display rpm on 7 segment display
+          display_seven_seg(rpm);  // display rpm on 7 segment display
+     }
+     display_seven_seg(rpm);       // display rpm on 7 segment display
 
      int rpm_bytes = Serial1.read();
      rpm = rpm_bytes;
 
-     display_seven_seg(rpm);     // display rpm on 7 segment display
+     display_seven_seg(rpm);       // display rpm on 7 segment display
+
      if (rpm >= FAN_THRESH_VAL) {
           digitalWrite(FAN_PIN, HIGH);
      }
@@ -136,8 +151,9 @@ void loop() {
      // Read load cell value from main controller
      while (!Serial1.available()){
           display_seven_seg(rpm);       // display rpm on 7 segment display
-          }
+     }
      display_seven_seg(rpm);
+
      int load_cell_bytes = Serial1.read();
      load = load_cell_bytes;
 
@@ -150,12 +166,12 @@ void loop() {
           char c = Serial.read();                              // read each character
           if (c == '*') {
                // Parse over incoming string from MATLAB
-               ind1 = readString.indexOf(',');                   // location of first ","
-               start_stop = readString.substring(0, ind1);       // first data string
-               ind2 = readString.indexOf(',', ind1+1);           // location of second ","
-               rpm_matlab = readString.substring(ind1+1, ind2);  // second data string
-               ind3 = readString.indexOf(',', ind2+1);           // location of third ","
-               calibration_matlab = readString.substring(ind2+1);   // third data string, after last ","
+               ind1 = readString.indexOf(',');                        // location of first ","
+               start_stop = readString.substring(0, ind1);            // first data string
+               ind2 = readString.indexOf(',', ind1+1);                // location of second ","
+               rpm_matlab = readString.substring(ind1+1, ind2);       // second data string
+               ind3 = readString.indexOf(',', ind2+1);                // location of third ","
+               calibration_matlab = readString.substring(ind2+1);     // third data string, after last ","
 
                Serial.println(calibration_matlab);
                long calibration_matlab_int = abs(calibration_matlab.toInt());
@@ -163,7 +179,6 @@ void loop() {
                Serial.println(rpm_matlab);
                long rpm_matlab_int = rpm_matlab.toInt();
                Serial.println(rpm_matlab_int);
-
                Serial.println();
                Serial.println();
                Serial.print("Start_stop flag: ");
@@ -181,33 +196,34 @@ void loop() {
                // ints being sent over serial wrap at 512, must split up ints &
                // reconstruct on the other end (main_controller)
 
-//               Serial.print("calibration_matlab_int / 256 / 256: ");
-//               Serial.println((int)((calibration_matlab_int / 256) / 256));
+               // Serial.print("calibration_matlab_int / 256 / 256: ");
+               // Serial.println((int)((calibration_matlab_int / 256) / 256));
                Serial1.write((int)((calibration_matlab_int / 256) / 256));
 
-//               Serial.print("(calibration_matlab_int / 256) % 256): ");
-//               Serial.println((int)((calibration_matlab_int / 256) % 256));
+               // Serial.print("(calibration_matlab_int / 256) % 256): ");
+               // Serial.println((int)((calibration_matlab_int / 256) % 256));
                Serial1.write((int)((calibration_matlab_int / 256) % 256));
 
-//               Serial.print("(int)(calibration_matlab_int % 256): ");
-//               Serial.println((int)(calibration_matlab_int % 256));
+               // Serial.print("(int)(calibration_matlab_int % 256): ");
+               // Serial.println((int)(calibration_matlab_int % 256));
                Serial1.write((int)(calibration_matlab_int % 256));
 
-//               Serial.print("((int)(rpm_matlab_int / 256)): ");
-//               Serial.println((int)(rpm_matlab_int / 256));
+               // Serial.print("((int)(rpm_matlab_int / 256)): ");
+               // Serial.println((int)(rpm_matlab_int / 256));
                Serial1.write((int)(rpm_matlab_int / 256));
 
-//               Serial.print("((int)(rpm_matlab_int % 256)): ");
-//               Serial.println((int)(rpm_matlab_int % 256));
+               // Serial.print("((int)(rpm_matlab_int % 256)): ");
+               // Serial.println((int)(rpm_matlab_int % 256));
                Serial1.write((int)(rpm_matlab_int % 256));
 
-               rpm_matlab = "";         // clear variables for new input
+               // clear variables for new input
+               rpm_matlab = "";
                calibration_matlab = "";
                readString = "";
      }
      else
           readString += c;         // makes the string readString
-     //   Serial.println(c);       // debugging
+          // Serial.println(c);       // debugging
 
      }
 
@@ -228,7 +244,7 @@ void loop() {
      // read battery voltage
      battery_voltage = analogRead(BATTERY_VOLTAGE_PIN);
      battery_voltage = battery_voltage * 100.0 / 1023.0;    // adjust battery voltage to be sent to MATLAB
-     battery_voltage *= .1;        // scale to correct voltage
+     // battery_voltage *= .1;        // scale to correct voltage (from 0 to 9V)
 
      // ------------------------------------------------------------------------
 
@@ -328,18 +344,19 @@ void make_string() {
          str_battery_voltage + battery_voltage
          ;
 
-     //    char packet_to_mlab[10] = "000111000";      // testing
-
-     //  if (Serial.available())
      display_seven_seg(rpm);       // display rpm on 7 segment display
+
      Serial.flush();
      Serial.println(packet_to_matlab);
+
      display_seven_seg(rpm);       // display rpm on 7 segment display
-     //   Serial.println(packet_to_mlab);
+
 }
 
+// =============================================================================
+
 void display_seven_seg(int rpm) {
-     // rpm
+     // 7 segment - rpm
      int seven_seg_volt_thousand = extractDigit(rpm, 4);
      int seven_seg_volt_hundred  = extractDigit(rpm, 3);
      int seven_seg_volt_ten      = extractDigit(rpm, 2);
@@ -378,6 +395,8 @@ void display_seven_seg(int rpm) {
      delay(4);
 
    }
+
+// =============================================================================
 
 void displayDigit(int digit) {
      switch (digit) {
@@ -474,6 +493,8 @@ void displayDigit(int digit) {
      }
 }
 
+// =============================================================================
+// 7 segment - get digits to display
 int extractDigit(int V, int P) {
      return int(V/(pow(10,P-1))) - int(V/(pow(10,P)))*10;
 }
