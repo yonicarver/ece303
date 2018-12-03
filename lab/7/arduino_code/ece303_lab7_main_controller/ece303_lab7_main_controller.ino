@@ -123,7 +123,7 @@ void loop() {
 
     // ========================================================================
 
-     current_millis = millis();
+     
 
      // scale.set_scale(calibration_factor);  // calibration factor obtained from first sketch
      input_load = scale.get_units()*1000;    // up to 3 decimal points
@@ -137,8 +137,8 @@ void loop() {
      }
 
      // uncomment to debug load cell ===========================================
-     // Serial.print("input load: ");
-     // Serial.println(input_load);
+//      Serial.print("input load: ");
+//      Serial.println(input_load);
 
      // map the input voltage (from 0 to 1023) to the duty cycle output (from 0 to 255)
      duty_cycle = map(input_load, 0, max_load, 0, 255);
@@ -181,6 +181,7 @@ void loop() {
 
      // ========================================================================
 
+     current_millis = millis();
      if (current_millis - start_millis >= 1000) {
           Serial.print("RPM: ");        // print pulse counter every second
           Serial.println(rpm);
@@ -228,6 +229,7 @@ void loop() {
           Serial.println();
 
      }
+
 }
 
 // INTERRUPT ROUTINES ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -242,7 +244,7 @@ void count_pulses() {
 void updateEEPROM() {
      EEPROM.updateDouble(addressDouble, calibration_factor);
      scale.set_scale(calibration_factor);  // calibration factor obtained from first sketch
-     scale.tare();             // reset the scale to 0 NEED TO TEST IF WE NEED THIS LINE WITH LOAD CELL AND GUI
+//     scale.tare();             // reset the scale to 0 NEED TO TEST IF WE NEED THIS LINE WITH LOAD CELL AND GUI
      EEPROM.updateInt(addressInt, max_rpm);
 }
 

@@ -45,7 +45,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 
 // Thresholds
 #define COOLANT_THRESH_VAL 00      // 50
-#define TEMP_THRESH_VAL    30      // 30
+#define TEMP_THRESH_VAL    27      // 30
 int FAN_THRESH_VAL = 100;          // 100 - aka maximum RPM
 
 // MATLAB string: Keys
